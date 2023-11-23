@@ -7,7 +7,7 @@
 - Node.js
    - I have `v20.7.0` and it works fine
 - npm
-   - I'm using `10.1.0`
+   - I'm using version `10.1.0`
 - GNU Make
 - a valid steam API key
    - Visit https://steamcommunity.com/dev/apikey to obtain one

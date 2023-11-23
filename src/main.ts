@@ -1,6 +1,7 @@
 // this program assumes that the CWD is the repository root!
 import fs from "fs";
 import * as S from "./steamapi.js";
+import {SnapshotDB} from "./database.js";
 
 type ProgramConfig = {
    key: string;
@@ -14,21 +15,23 @@ try {
    throw e;
 }
 
-const {key} = config;
-const combinedUserIds = [...config.userIds];
-for (const url of config.userUrls) {
-   combinedUserIds.push(await S.getSteamIdFromUrl({key, url}));
-}
+new SnapshotDB;
 
-for (const steamid of combinedUserIds) {
-   const summaryRes = await S.GetPlayerSummaries({key, steamids: [steamid]});
-   const summary = summaryRes.response.players[0]!;
-   const friendsRes = await S.GetFriendList({key, steamid});
-   const {friends} = friendsRes.friendslist;
-   const friendSteamids = friends.map(f => f.steamid);
-   const friendSummaryRes = await S.GetPlayerSummaries({key, steamids: friendSteamids});
-   console.log(`${summary.personaname} has ${friends.length} friends:`);
-   for (const friendSummary of friendSummaryRes.response.players) {
-      console.log(`- ${friendSummary.personaname} (${friendSummary.realname})`);
-   }
-}
+// const {key} = config;
+// const combinedUserIds = [...config.userIds];
+// for (const url of config.userUrls) {
+//    combinedUserIds.push(await S.getSteamIdFromUrl({key, url}));
+// }
+
+// for (const steamid of combinedUserIds) {
+//    const summaryRes = await S.GetPlayerSummaries({key, steamids: [steamid]});
+//    const summary = summaryRes.response.players[0]!;
+//    const friendsRes = await S.GetFriendList({key, steamid});
+//    const {friends} = friendsRes.friendslist;
+//    const friendSteamids = friends.map(f => f.steamid);
+//    const friendSummaryRes = await S.GetPlayerSummaries({key, steamids: friendSteamids});
+//    console.log(`${summary.personaname} has ${friends.length} friends:`);
+//    for (const friendSummary of friendSummaryRes.response.players) {
+//       console.log(`- ${friendSummary.personaname} (${friendSummary.realname})`);
+//    }
+// }

@@ -1,6 +1,6 @@
-// incomplete implementation of the Steam API
-// please don't use this as a reference!
-// the only parts implemented are the parts I care about
+// Incomplete implementation of the Steam API
+// Please don't use this as some kind of complete reference since I've only
+// included the parts I care about!
 
 async function fetchJSON(url: string): Promise<any> {
    const res = await fetch(url);

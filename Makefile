@@ -1,7 +1,17 @@
 PATH := ./node_modules/.bin;$(PATH)
 
-run: build
+run: build .config.json
 	node js/main
 
+.config.json:
+	node .config
+
+opts := --bundle
+opts += --format=esm
+opts += --platform=node
+opts += --packages=external
+opts += --loader:.sql=text
+opts += --outfile=js/main.js
+
 build:
-	esbuild src/main.ts --bundle --platform=node --format=esm --outfile=js/main.js
+	esbuild src/main.ts $(opts)
