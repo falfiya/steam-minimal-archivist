@@ -27,9 +27,20 @@ You'll have to build the executable JavaScript yourself though.
 
 ## Usage
 
-1. `npm i`
-1. put your Steam API key on the first line of `steam_api_key.txt`
-2. make
+1. `npm i` to install all required packages
+2. `make`
+
+On your first run, you will be prompted for your Steam API Key and a `.config.json` file will be created.
+**Do not share this file!** it has your API key inside!
+Next, add some people to archive either using a full URL or a Steam User ID.
+
+```json
+{
+   "key": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+   "userIds": ["XXXXXXXXXXXXXXXXX"],
+   "userUrls": ["https://steamcommunity.com/id/xxxxxx/"]
+}
+```
 
 ## What is Archived
 
