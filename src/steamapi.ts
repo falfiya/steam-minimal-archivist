@@ -12,6 +12,8 @@ async function fetchJSON(url: string): Promise<any> {
    }
 }
 
+export type InputSteamId = string | number;
+
 // IPlayerService
 function GetRecentlyPlayedGames(opts: GetRecentlyPlayedGames.Opts): Promise<GetRecentlyPlayedGames.Res> {
    return fetchJSON(`${GetRecentlyPlayedGames.endpoint}?key=${opts.key}&steamid=${opts.steamid}`);
@@ -20,7 +22,7 @@ namespace GetRecentlyPlayedGames {
    export const endpoint = "https://api.steampowered.com/IPlayerService/GetRecentlyPlayedGames/v1"
    export type Opts = {
       key: string;
-      steamid: string;
+      steamid: InputSteamId;
    };
    export type RecentlyPlayedGame = {
       appid: number;
@@ -49,7 +51,7 @@ namespace GetOwnedGames {
    export const endpoint = "https://api.steampowered.com/IPlayerService/GetOwnedGames/v1"
    export type Opts = {
       key: string;
-      steamid: string;
+      steamid: InputSteamId;
    };
    export type OwnedGame = {
       appid: number;
@@ -79,7 +81,7 @@ namespace GetBadges {
    export const endpoint = "https://api.steampowered.com/ISteamUser/GetBadges/v1"
    export type Opts = {
       key: string;
-      steamid: string;
+      steamid: InputSteamId;
    };
    export type Res = {
       response: {
@@ -100,7 +102,7 @@ namespace GetFriendList {
    export const endpoint = "https://api.steampowered.com/ISteamUser/GetFriendList/v1"
    export type Opts = {
       key: string;
-      steamid: string;
+      steamid: InputSteamId;
    };
    export type Friend = {
       steamid: string;
@@ -122,7 +124,7 @@ namespace GetPlayerSummaries {
    export const endpoint = "https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2"
    export type Opts = {
       key: string;
-      steamids: string[];
+      steamids: InputSteamId[];
    };
    export type SteamUserSummary = {
       steamid: string;

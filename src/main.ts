@@ -15,13 +15,29 @@ try {
    throw e;
 }
 
-new SnapshotDB;
+const {key} = config;
 
-// const {key} = config;
-// const combinedUserIds = [...config.userIds];
-// for (const url of config.userUrls) {
-//    combinedUserIds.push(await S.getSteamIdFromUrl({key, url}));
-// }
+// inputs come in two forms and so I'd just like a unified list of steamids
+const combinedUserIds = [...config.userIds];
+for (const url of config.userUrls) {
+   combinedUserIds.push(await S.getSteamIdFromUrl({key, url}));
+}
+
+const summariesRes = await S.GetPlayerSummaries({key, steamids: combinedUserIds});
+const summaries = summariesRes.response.players;
+
+if (summaries.length === 1) {
+   console.log("Archiving 1 Steam User");
+} else {
+   console.log(`Archiving ${summaries.length} Steam Users`);
+}
+
+const A = new SnapshotDB;
+
+for (let i = 0; i < summaries.length; i++) {
+   const summary = summaries[i]!;
+   summary.steamid
+}
 
 // for (const steamid of combinedUserIds) {
 //    const summaryRes = await S.GetPlayerSummaries({key, steamids: [steamid]});
@@ -35,3 +51,5 @@ new SnapshotDB;
 //       console.log(`- ${friendSummary.personaname} (${friendSummary.realname})`);
 //    }
 // }
+
+new SnapshotDB;

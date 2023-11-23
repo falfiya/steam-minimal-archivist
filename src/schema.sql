@@ -66,3 +66,17 @@ create table if not exists avatars(
       blob not null,
    primary key (hash)
 );
+
+create table if not exists friends(
+   epoch
+      integer not null,
+   source_id
+      integer(17) not null,
+   dest_id
+      integer(17) not null,
+   friend_since
+      integer not null,
+
+   primary key (epoch, source_id, dest_id),
+   foreign key (epoch, user_id) references users(epoch, id)
+);
