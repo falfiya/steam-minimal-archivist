@@ -36,8 +36,18 @@ You'll have to build the executable JavaScript yourself though.
 `steam-minimal-archivist` is a snapshot based system. A single snapshot contains:
 
 - a user's
-   - name
-   - ...
+   - id
+   - username
+   - profile url
+   - avatar
+   - last logoff time
+   - real name
+   - creation time
+   - steam level
+   - games
+      - minutes played
+      - minutes played in the last 2 weeks
+      - last played time
 
 ## How to View Your Data
 

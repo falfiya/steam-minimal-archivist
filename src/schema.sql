@@ -11,7 +11,7 @@ create table if not exists users(
    profile_url
       text not null,
    avatar_hash
-      text not null,
+      text,
    last_logoff
       integer not null,
    real_name
@@ -63,7 +63,7 @@ create table if not exists avatars(
    hash
       text not null,
    data
-      blob not null,
+      blob,
    primary key (hash)
 );
 
@@ -78,5 +78,5 @@ create table if not exists friends(
       integer not null,
 
    primary key (epoch, source_id, dest_id),
-   foreign key (epoch, user_id) references users(epoch, id)
+   foreign key (epoch, source_id) references users(epoch, id)
 );

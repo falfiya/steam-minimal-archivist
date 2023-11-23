@@ -5,14 +5,16 @@
 async function fetchJSON(url: string): Promise<any> {
    const res = await fetch(url);
    try {
-      return res.json();
+      const obj = await res.json();
+      // @ts-ignore
+      // obj.url = url;
+      return obj;
    } catch (e) {
       console.error(await res.text());
       throw e;
    }
 }
 
-export type InputSteamId = string | number;
 
 // IPlayerService
 function GetRecentlyPlayedGames(opts: GetRecentlyPlayedGames.Opts): Promise<GetRecentlyPlayedGames.Res> {
@@ -22,12 +24,12 @@ namespace GetRecentlyPlayedGames {
    export const endpoint = "https://api.steampowered.com/IPlayerService/GetRecentlyPlayedGames/v1"
    export type Opts = {
       key: string;
-      steamid: InputSteamId;
+      steamid: string;
    };
    export type RecentlyPlayedGame = {
       appid: number;
       name: string;
-      playtime2_weeks: number;
+      playtime_2weeks: number;
       playtime_forever: number;
       img_icon_url: string;
       playtime_windows_forever: number;
@@ -51,12 +53,11 @@ namespace GetOwnedGames {
    export const endpoint = "https://api.steampowered.com/IPlayerService/GetOwnedGames/v1"
    export type Opts = {
       key: string;
-      steamid: InputSteamId;
+      steamid: string;
    };
    export type OwnedGame = {
       appid: number;
       name: string;
-      playtime2_weeks: number;
       playtime_forever: number;
       img_icon_url: string;
       playtime_windows_forever: number;
@@ -78,10 +79,10 @@ function GetBadges(opts: GetBadges.Opts): Promise<GetBadges.Res> {
    return fetchJSON(`${GetBadges.endpoint}?key=${opts.key}&steamid=${opts.steamid}`);
 }
 namespace GetBadges {
-   export const endpoint = "https://api.steampowered.com/ISteamUser/GetBadges/v1"
+   export const endpoint = "https://api.steampowered.com/IPlayerService/GetBadges/v1"
    export type Opts = {
       key: string;
-      steamid: InputSteamId;
+      steamid: string;
    };
    export type Res = {
       response: {
@@ -102,7 +103,7 @@ namespace GetFriendList {
    export const endpoint = "https://api.steampowered.com/ISteamUser/GetFriendList/v1"
    export type Opts = {
       key: string;
-      steamid: InputSteamId;
+      steamid: string;
    };
    export type Friend = {
       steamid: string;
@@ -124,7 +125,7 @@ namespace GetPlayerSummaries {
    export const endpoint = "https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2"
    export type Opts = {
       key: string;
-      steamids: InputSteamId[];
+      steamids: string[];
    };
    export type SteamUserSummary = {
       steamid: string;
