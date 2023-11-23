@@ -2,16 +2,16 @@
 
 *Unfancy Steam Archivist*
 
-I'd like having records of my playtime on certain days and I don't think Steam keeps track of that, at least not publicly. Set this up to run periodically to keep running snapshots of your playtime!
+I'd like having records of my playtime on certain days and I don't think Steam keeps track of that, at least not publicly. Set this up to run periodically to keep running snapshots of your playtime! Mine runs whenever my computer is idle for more than 15 minutes using the Windows® Task Scheduler.
 
 ## Requirements
 
 - Node.js
    - I have `v20.7.0` and it works fine
-- npm
+- Node Package Manager
    - I'm using version `10.1.0`
 - GNU Make
-- A valid steam API key
+- A Valid Steam API Key
    - Visit https://steamcommunity.com/dev/apikey to obtain one
 
 ## Dependencies
@@ -32,9 +32,10 @@ You'll have to build the executable JavaScript yourself though.
 1. `npm i` to install all required packages
 2. `make`
 
-On your first run, you will be prompted for your Steam API Key and a `.config.json` file will be created.
-**Do not share this file!** it has your API key inside!
-Next, add some people to archive either using a full URL or a Steam User ID.
+On your first run, you will be prompted for your Steam API Key.
+A `.config.json` file will be created.
+**Do not share this file since it has your API key inside!**
+Inside it, add some people to archive. You can either use a full URL or a Steam User ID.
 
 ```json
 {
@@ -49,27 +50,31 @@ Next, add some people to archive either using a full URL or a Steam User ID.
 }
 ```
 
-## What is Archived
+## What's Archived
 
 `steam-minimal-archivist` is a snapshot based system. A single snapshot contains:
 
-- a user's
-   - id
-   - username
-   - profile url
-   - avatar
-   - last logoff time
-   - real name
-   - creation time
-   - steam level
-   - games
-      - minutes played
-      - minutes played in the last 2 weeks
-      - last played time
+- A User's
+   - Steam Id
+   - Username
+   - Profile URL
+   - Avatar
+   - Last Logoff Time
+   - "Real Name" <sup>it's whatever they set that to in their Steam profile</sup>
+   - Creation Time
+   - Steam Level
+   - Games
+      - Minutes Played
+         - Platform Specific
+            - On Windows
+            - On Macintosh
+            - On Linux
+      - Minutes Played in the Last Two Weeks
+      - Last Played Time
 
 ## How to View Your Data
 
-I'm not planning on making an interface to view the generated sqlite3 database. Use another program to access the database and make your own UI. This program is simply for archiving data, not viewing it.
+I'm not planning on making an interface to view the generated sqlite3 database. Use another program to access the database and make your own UI. This program is simply for archiving data, not viewing it. The schema is located in `src/schema.sql`.
 
 ## Directory Structure
 
