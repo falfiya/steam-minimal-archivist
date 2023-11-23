@@ -1,9 +1,16 @@
 {
    "name": "steam-minimal-archivist",
    "type": "module",
+   "scripts": {
+      "start": "npm run build && node js/main",
+      "build": "esbuild --bundle --platform=node --packages=external --format=esm --outfile=js/main.js"
+   },
+   "dependencies": {
+      "better-sqlite3": "^9.1.1"
+   },
    "devDependencies": {
+      "@types/better-sqlite3": "^7.6.8",
       "@types/node": "^20.9.4",
-      "better-sqlite3": "^9.1.1",
       "esbuild": "^0.19.7",
       "typescript": "^5.3.2"
    }

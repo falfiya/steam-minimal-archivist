@@ -1,8 +1,6 @@
 {
    "compilerOptions": {
       // type checking
-      // "allowUnreachableCode": undefined,
-      // "allowUnusedLabels": undefined,
       "alwaysStrict": true,
       "exactOptionalPropertyTypes": true,
       "noFallthroughCasesInSwitch": false,
@@ -10,7 +8,7 @@
       "noImplicitOverride": true,
       "noImplicitReturns": true,
       "noImplicitThis": true,
-      "noPropertyAccessFromIndexSignature": true,
+      // "noPropertyAccessFromIndexSignature": true,
       "noUncheckedIndexedAccess": true,
       "noUnusedLocals": false,
       "noUnusedParameters": false,
@@ -35,7 +33,5 @@
       "lib": ["es2022"],
       "target": "es2022",
    },
-   "include": [
-      "src/*.ts"
-   ],
+   "include": ["src/*.ts"],
 }

@@ -1,4 +1,4 @@
 /node_modules/
-/js/
-/steam_api_key.txt
 /data/archives.sqlite3
+/js/
+/.config.json
