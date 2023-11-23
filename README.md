@@ -2,6 +2,8 @@
 
 *Unfancy Steam Archivist*
 
+I'd like having records of my playtime on certain days and I don't think Steam keeps track of that, at least not publicly. Set this up to run periodically to keep running snapshots of your playtime!
+
 ## Requirements
 
 - Node.js
@@ -9,7 +11,7 @@
 - npm
    - I'm using version `10.1.0`
 - GNU Make
-- a valid steam API key
+- A valid steam API key
    - Visit https://steamcommunity.com/dev/apikey to obtain one
 
 ## Dependencies
@@ -36,9 +38,14 @@ Next, add some people to archive either using a full URL or a Steam User ID.
 
 ```json
 {
-   "key": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+   "key": "YOUR KEY HERE XXXXXXXXXXXXXXXXXX",
    "userIds": ["XXXXXXXXXXXXXXXXX"],
-   "userUrls": ["https://steamcommunity.com/id/xxxxxx/"]
+   "userUrls": [
+      "https://steamcommunity.com/id/xxxxxx/",
+      "https://steamcommunity.com/profiles/XXXXXXXXXXXXXXXXX",
+      "https://steamcommunity.com/id/xxxxxx",
+      "https://steamcommunity.com/profiles/XXXXXXXXXXXXXXXXX/",
+   ]
 }
 ```
 
