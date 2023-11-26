@@ -6,15 +6,12 @@ async function fetchJSON(url: string): Promise<any> {
    const res = await fetch(url);
    try {
       const obj = await res.json();
-      // @ts-ignore
-      // obj.url = url;
       return obj;
    } catch (e) {
       console.error(await res.text());
       throw e;
    }
 }
-
 
 // IPlayerService
 function GetRecentlyPlayedGames(opts: GetRecentlyPlayedGames.Opts): Promise<GetRecentlyPlayedGames.Res> {
@@ -45,7 +42,6 @@ namespace GetRecentlyPlayedGames {
       };
    };
 }
-
 function GetOwnedGames(opts: GetOwnedGames.Opts): Promise<GetOwnedGames.Res> {
    return fetchJSON(`${GetOwnedGames.endpoint}?key=${opts.key}&steamid=${opts.steamid}&include_appinfo=true&include_played_free_games=true`);
 }
@@ -117,7 +113,6 @@ namespace GetFriendList {
       };
    };
 }
-
 function GetPlayerSummaries(opts: GetPlayerSummaries.Opts): Promise<GetPlayerSummaries.Res> {
    return fetchJSON(`${GetPlayerSummaries.endpoint}?key=${opts.key}&steamids=${opts.steamids.join(',')}`);
 }
@@ -150,7 +145,6 @@ namespace GetPlayerSummaries {
       };
    };
 }
-
 function ResolveVanityUrl(opts: ResolveVanityUrl.Opts): Promise<ResolveVanityUrl.Res> {
    return fetchJSON(`${ResolveVanityUrl.endpoint}?key=${opts.key}&vanityurl=${opts.vanityurl}`);
 }
@@ -167,6 +161,7 @@ namespace ResolveVanityUrl {
       };
    };
 }
+
 async function getSteamIdFromUrl({key, url}: getSteamIdFromUrl.Opts): Promise<string> {
    const profileMatch = url.match(/^https?:\/{2}steamcommunity.com\/profiles\/(?<steamid>\d+)/);
    if (profileMatch) {

@@ -23,7 +23,7 @@ You'll have to build the executable JavaScript yourself though.
 - runtime
    - Node.js
    - `better-sqlite3`
-- buildtime
+- build time
    - `typescript`
    - `@types/node`
    - `@types/better-sqlite3`
@@ -31,19 +31,19 @@ You'll have to build the executable JavaScript yourself though.
 
 ## Usage
 
-1. `npm i` to install all required packages
-2. `make`
+1. Clone this repository and `cd into it`
+   - `git clone https://github.com/falfiya/steam-minimal-archivist.git && cd steam-minimal-archivist`
+2. `npm i` to install all required packages
+3. `make`
 
-On your first run, you will be prompted for your Steam API Key.
-A `.config.json` file will be created.
-**Do not share this file since it has your API key inside!**
-Inside it, add some people to archive. You can either use a full URL or a Steam User ID.
-
+On your first run, you will be prompted for your Steam API Key and a `.config.json` file will be created.
+Then, add some users to archive.
+You can either use a full URL or a Steam User ID.
 Your `.config.json` file might look something like this:
 
 ```json
 {
-   "key": "YOUR KEY HERE XXXXXXXXXXXXXXXXXX",
+   "key": "YOUR_KEY_HERE_XXXXXXXXXXXXXXXXXX",
    "userIds": ["9876543210987654"],
    "userUrls": [
       "https://steamcommunity.com/id/abcdef/",
@@ -54,9 +54,11 @@ Your `.config.json` file might look something like this:
 }
 ```
 
+**Do not share this file since it has your API key inside!**
+
 ## What's Archived
 
-`steam-minimal-archivist` is a snapshot based system. A single snapshot contains:
+`steam-minimal-archivist` is a snapshot-based archiver. A single snapshot contains:
 
 - A User's
    - Steam Id
