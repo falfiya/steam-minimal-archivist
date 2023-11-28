@@ -108,4 +108,9 @@ export class SnapshotDB extends Sqlite3Database {
          friend_since: number,
       }
    ) { this.stmtFriends.run(o) }
+
+   override close(): this {
+      super.pragma("optimize");
+      return super.close();
+   }
 }

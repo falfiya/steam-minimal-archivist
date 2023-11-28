@@ -6,6 +6,26 @@ Steam doesn't keep track of play-time on specific dates so let's do it ourselves
 
 I recommend setting it up to run periodically. Maybe have it run on login, or run once a day. Do it whenever it suits you. Mine runs whenever my computer is idle for more than 15 minutes using the Windows® Task Scheduler.
 
+## What's Archived
+
+- A User's
+   - Steam Id
+   - Username
+   - Profile URL
+   - Avatar
+   - Last Logoff Time
+   - "Real Name" <sup>it's whatever they set in their Steam profile</sup>
+   - Creation Time
+   - Steam Level
+   - Games
+      - Minutes Played
+         - Platform Specific
+            - On Windows
+            - On Macintosh
+            - On Linux
+      - Minutes Played in the Last Two Weeks
+      - Last Played Time
+
 ## Requirements
 
 - Node.js
@@ -56,28 +76,6 @@ Your `.config.json` file might look something like this:
 
 **Do not share this file since it has your API key inside!**
 
-## What's Archived
-
-`steam-minimal-archivist` is a snapshot-based archiver. A single snapshot contains:
-
-- A User's
-   - Steam Id
-   - Username
-   - Profile URL
-   - Avatar
-   - Last Logoff Time
-   - "Real Name" <sup>it's whatever they set in their Steam profile</sup>
-   - Creation Time
-   - Steam Level
-   - Games
-      - Minutes Played
-         - Platform Specific
-            - On Windows
-            - On Macintosh
-            - On Linux
-      - Minutes Played in the Last Two Weeks
-      - Last Played Time
-
 ## How to View Your Data
 
 `steam-minimal-archivist`'s functionality is limited to archiving. If you'd like to make an application to display or export your data, please reference the schema located in `src/schema.sql`. The data is stored in a sqlite3 database.
@@ -95,3 +93,6 @@ Your `.config.json` file might look something like this:
 - The new https://partner.steamgames.com/doc/webapi_overview Steamworks Web API Documentation
 - [https://stackoverflow.com/questions/27862725/how-to-get-last-played-on-for-steam-game-using-steam-api](https://stackoverflow.com/a/75693044)
    - for a long time you had to just scrape the webpage which was highly unreliable and no longer works
+
+## Build Process
+
