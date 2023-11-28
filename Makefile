@@ -7,8 +7,8 @@ endif
 run: build .config.json
 	node js/main
 
-.config.json:
-	node .config
+config.json:
+	node util/config
 
 opts := --bundle
 opts += --format=esm
