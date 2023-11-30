@@ -6,10 +6,12 @@ declare const schema: string;
 export class ArchiveDatabase extends Sqlite3Database {
    schemaVersion = "v1.0.0";
 
-   stmtUsers: Statement;
-   stmtGames: Statement;
-   stmtAvatars: Statement;
-   stmtFriends: Statement;
+   insertAvatars: Statement;
+   insertUsers: Statement;
+   insertUsers2: Statement;
+
+   insertPlaytime: Statement;
+   insertFriends: Statement;
 
    init() {
       this.exec(schema);
@@ -18,14 +20,26 @@ export class ArchiveDatabase extends Sqlite3Database {
    constructor (location: string) {
       super(location);
       this.pragma("foreign_keys = on");
-      this.stmtUsers = this.prepare(/* sql */ `
+      this.insertAvatars = this.prepare(/* sql */ `
+         insert or ignore into avatars values (
+            :hash,
+            :data
+         );
+      `);
+      this.insertUsers = this.prepare(/* sql */ `
          insert into users values (
-            :epoch,
+            :last_updated,
+            :id,
+            :last_logoff
+         );
+      `);
+      this.insertUsers2 = this.prepare(/* sql */ `
+         insert into users2 values (
+            :last_updated,
             :id,
             :user_name,
             :profile_url,
             :avatar_hash,
-            :last_logoff,
             :real_name,
             :time_created,
             :steam_xp,
@@ -33,10 +47,10 @@ export class ArchiveDatabase extends Sqlite3Database {
             :steam_xp_needed_to_level_up,
             :steam_xp_needed_current_level
          );
-      `)
-      this.stmtGames = this.prepare(/* sql */ `
-         insert into games values (
-            :epoch,
+      `);
+      this.insertPlaytime = this.prepare(/* sql */ `
+         insert into playtime values (
+            :last_updated,
             :user_id,
             :game_id,
             :name,
@@ -48,17 +62,11 @@ export class ArchiveDatabase extends Sqlite3Database {
             :last_played
          );
       `);
-      this.stmtAvatars = this.prepare(/* sql */ `
-         insert or ignore into avatars values (
-            :hash,
-            :data
-         );
-      `);
-      this.stmtFriends = this.prepare(/* sql */ `
+      this.insertFriends = this.prepare(/* sql */ `
          insert into friends values (
-            :epoch,
-            :source_id,
-            :dest_id,
+            :last_updated,
+            :user_a,
+            :user_b,
             :friend_since
          );
       `);
@@ -79,7 +87,7 @@ export class ArchiveDatabase extends Sqlite3Database {
          steam_xp_needed_to_level_up: number,
          steam_xp_needed_current_level: number,
       }
-   ) { this.stmtUsers.run(o) }
+   ) { this.insertUsers.run(o) }
 
    addGame(
       o: {
@@ -94,14 +102,14 @@ export class ArchiveDatabase extends Sqlite3Database {
          playtime_linux_forever: number,
          last_played: number,
       }
-   ) { this.stmtGames.run(o) }
+   ) { this.insertGames.run(o) }
 
    addAvatar(
       o: {
          hash: string,
          data: Buffer,
       }
-   ) { this.stmtAvatars.run(o) }
+   ) { this.insertAvatars.run(o) }
 
    addFriend(
       o: {
@@ -110,7 +118,7 @@ export class ArchiveDatabase extends Sqlite3Database {
          dest_id: string,
          friend_since: number,
       }
-   ) { this.stmtFriends.run(o) }
+   ) { this.insertFriends.run(o) }
 
    override close(): this {
       super.pragma("optimize");

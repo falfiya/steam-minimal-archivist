@@ -26,7 +26,7 @@ create table users(
 create table users2(
    last_updated
       integer not null,
-   user_id
+   id
       integer(17) not null,
 
    user_name
@@ -40,8 +40,18 @@ create table users2(
    time_created -- as far as I know, this shouldn't change ever
       integer not null,
 
-   primary key (last_updated, user_id),
-   foreign key (last_updated, user_id) references users(last_updated, id),
+   -- leveling data
+   steam_xp
+      integer not null,
+   steam_level
+      integer not null,
+   steam_xp_needed_to_level_up
+      integer not null,
+   steam_xp_needed_current_level
+      integer not null,
+
+   primary key (last_updated, id),
+   foreign key (last_updated, id) references users(last_updated, id),
 
    foreign key (avatar_hash) references avatars(hash)
 ) strict;
@@ -66,6 +76,10 @@ when not exists (
       and new.avatar_hash = avatar_hash
       and new.real_name = real_name
       and new.time_created = time_created
+      and new.steam_xp = steam_xp
+      and new.steam_level = steam_level
+      and new.steam_xp_needed_to_level_up = steam_xp_needed_to_level_up
+      and new.steam_xp_needed_current_level = steam_xp_needed_current_level
 )
 begin
    insert into users2 values (
@@ -76,47 +90,8 @@ begin
       new.profile_url,
       new.avatar_hash,
       new.real_name,
-      new.time_created
-   );
-end
+      new.time_created,
 
-create table leveling(
-   last_updated
-      integer not null,
-   user_id
-      integer(17) not null,
-
-   steam_xp
-      integer not null,
-   steam_level
-      integer not null,
-   steam_xp_needed_to_level_up
-      integer not null,
-   steam_xp_needed_current_level
-      integer not null,
-
-   primary key (last_updated, user_id),
-   foreign key (last_updated, user_id) references users(last_updated, id)
-) strict;
-
-create view leveling_vw as
-   select max(last_updated) as last_updated, *
-   from leveling
-   group by user_id;
-
-create trigger leveling_insert instead of insert on leveling_vw
-when not exists (
-   select * from leveling_vw where 1
-      and new.user_id = user_id
-      and new.steam_xp = steam_xp
-      and new.steam_level = steam_level
-      and new.steam_xp_needed_to_level_up = steam_xp_needed_to_level_up
-      and new.steam_xp_needed_current_level = steam_xp_needed_current_level
-)
-begin
-   insert into leveling values (
-      new.last_updated,
-      new.user_id,
       new.steam_xp,
       new.steam_level,
       new.steam_xp_needed_to_level_up,
@@ -131,7 +106,7 @@ https://partner.steamgames.com/doc/store/editing/name
 
 It seems to me that the game name can actually change.
 */
-create table if not exists playtime(
+create table playtime(
    last_updated
       integer not null,
    user_id
@@ -196,7 +171,7 @@ Bidirectional relationship.
 user_a will be the user with the smaller id.
 user_b will be the user with the greater id.
 */
-create table if not exists friends(
+create table friends(
    last_updated
       integer not null,
 
