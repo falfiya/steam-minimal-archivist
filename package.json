@@ -1,6 +1,6 @@
 {
    "name": "steam-minimal-archivist",
-   "version": "0.2.0",
+   "version": "1.0.0",
    "type": "module",
    "dependencies": {
       "better-sqlite3": "^9.1.1"

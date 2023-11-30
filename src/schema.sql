@@ -1,4 +1,14 @@
-pragma foreign_keys = on;
+-- schema v1.0.0
+create table sma_meta(version text not null) strict;
+insert into sma_meta values ('v1.0.0');
+
+create table avatars(
+   hash
+      text not null,
+   data
+      blob,
+   primary key (hash)
+) strict;
 
 -- one record created per archiving session
 create table users(
@@ -13,7 +23,7 @@ create table users(
 ) strict;
 
 -- infrequent user changes
-create table if not exists users_inf(
+create table users2(
    last_updated
       integer not null,
    user_id
@@ -35,40 +45,43 @@ create table if not exists users_inf(
 
    foreign key (avatar_hash) references avatars(hash)
 ) strict;
-create view if not exists users_inf_vw
-as select max(last_updated) as last_modified, * from users_inf group by user_id;
 /*
-It's probably worth explaining this nonsense at least once.
-First intercept the insert operation on the bios table.
-We're only gonna allow an insert if there's some new data.
-To do that, let's take the users's last record using a sub-subquery and compare each and every column.
-If they're all equal, that subquery is gonna come up empty which means that the exists thing is gonna be false.
-And if the when clause is false, we're not gonna insert.
+This view keeps only the latest record for specific user_ids.
+There should only be one row per user_id.
 */
-create trigger if not exists users_inf_insert instead of insert on users_inf
-when exists (
-   select * from (select * from users_inf where new.user_id = user_id order by last_updated desc limit 1)
-   where 0
-      or new.user_name <> user_name
-      or new.profile_url <> profile_url
-      or new.avatar_hash <> avatar_hash
-      or new.last_logoff <> last_logoff
-      or new.real_name <> real_name
-      or new.time_created <> time_created
+create view users2_vw as
+   select max(last_updated) as last_updated, *
+      from users2
+      group by user_id;
+/*
+If there's a similar record, i.e. all fields are the same except for
+last_updated, then we don't actually want to insert anything. If a similar
+record does NOT EXISTS, then we'll insert a new row.
+*/
+create trigger users2_insert instead of insert on users2
+when not exists (
+   select * from users2_vw where 1
+      and new.user_name = user_name
+      and new.profile_url = profile_url
+      and new.avatar_hash = avatar_hash
+      and new.real_name = real_name
+      and new.time_created = time_created
 )
-begin insert into users_inf values (
-   new.last_updated,
-   new.user_id,
+begin
+   insert into users2 values (
+      new.last_updated,
+      new.user_id,
 
-   new.user_name,
-   new.profile_url,
-   new.avatar_hash,
-   new.last_logoff,
-   new.real_name,
-   new.time_created
-);
+      new.user_name,
+      new.profile_url,
+      new.avatar_hash,
+      new.last_logoff,
+      new.real_name,
+      new.time_created
+   );
+end
 
-create table if not exists leveling(
+create table leveling(
    last_updated
       integer not null,
    user_id
@@ -85,25 +98,33 @@ create table if not exists leveling(
 
    primary key (last_updated, user_id),
    foreign key (last_updated, user_id) references users(last_updated, id)
-);
-create trigger if not exists leveling_insert instead of insert on leveling
-when exists (
-   select * from (select * from leveling where new.user_id = user_id order by last_updated desc limit 1)
-   where 0
-      or new.steam_xp <> steam_xp
-      or new.steam_level <> steam_level
-      or new.steam_xp_needed_to_level_up <> steam_xp_needed_to_level_up
-      or new.steam_xp_needed_current_level <> steam_xp_needed_current_level
-)
-begin insert into leveling values (
-   new.last_updated,
-   new.user_id,
+) strict;
 
-   new.steam_xp,
-   new.steam_level,
-   new.steam_xp_needed_to_level_up,
-   new.steam_xp_needed_current_level
-);
+create view leveling_vw as
+   select max(last_updated) as last_updated, *
+   from leveling
+   group by user_id;
+
+create trigger leveling_insert instead of insert on leveling_vw
+when not exists (
+   select * from leveling_vw where 1
+      and new.user_id = user_id
+      and new.steam_xp = steam_xp
+      and new.steam_level = steam_level
+      and new.steam_xp_needed_to_level_up = steam_xp_needed_to_level_up
+      and new.steam_xp_needed_current_level = steam_xp_needed_current_level
+)
+begin
+   insert into leveling values (
+      new.last_updated,
+      new.user_id,
+
+      new.steam_xp,
+      new.steam_level,
+      new.steam_xp_needed_to_level_up,
+      new.steam_xp_needed_current_level
+   );
+end
 
 /*
 https://partner.steamgames.com/doc/store/editing/name
@@ -138,50 +159,50 @@ create table if not exists playtime(
 
    primary key (last_updated, user_id, game_id),
    foreign key (last_updated, user_id) references users(last_updated, id)
-);
-create view if not exists playtime_vw
-as select
-   max(last_updated) as last_updated,
-   *,
-group by 
+) strict;
 
-create trigger if not exists playtime_insert instead of insert on playtime
-when exists (
-   select * from (select * from playtime where new.user_id = user_id order by last_updated desc limit 1)
-   where 0
-      or new.name <> name
-      or new.playtime_2weeks <> playtime_2weeks
-      or new.playtime_forever <> playtime_forever
-      or new.playtime_windows_forever <> playtime_windows_forever
-      or new.playtime_mac_forever <> playtime_mac_forever
-      or new.last_played <> last_played
+create view playtime_vw as
+   select max(last_updated) as last_updated, *
+   from playtime
+   group by user_id, game_id;
+
+create trigger playtime_insert instead of insert on playtime_vw
+when not exists (
+   select * from playtime_vw where 1
+      and new.user_id = user_id
+      and new.game_id = game_id
+      and new.name = name
+      and new.playtime_2weeks = playtime_2weeks
+      and new.playtime_forever = playtime_forever
+      and new.playtime_windows_forever = playtime_windows_forever
+      and new.playtime_mac_forever = playtime_mac_forever
+      and new.playtime_linux_forever = playtime_linux_forever
+      and new.last_played = last_played
 )
-begin insert into playtime values (
-   new.last_updated,
-   new.user_id,
+begin
+   insert into playtime values (
+      new.last_updated,
+      new.user_id,
 
-   new.steam_xp,
-   new.steam_level,
-   new.steam_xp_needed_to_level_up,
-   new.steam_xp_needed_current_level
-);
+      new.steam_xp,
+      new.steam_level,
+      new.steam_xp_needed_to_level_up,
+      new.steam_xp_needed_current_level
+   );
+end
 
-create table if not exists avatars(
-   hash
-      text not null,
-   data
-      blob,
-   primary key (hash)
-);
-
--- this is a bidirectional relationship so let's not record stuff twice
+/*
+Bidirectional relationship.
+user_a will be the user with the smaller id.
+user_b will be the user with the greater id.
+*/
 create table if not exists friends(
    last_updated
       integer not null,
 
-   user_a -- user with the smaller id
+   user_a
       integer(17) not null,
-   user_b -- user with the bigger id
+   user_b
       integer(17) not null,
 
    -- null means not friends
@@ -190,18 +211,29 @@ create table if not exists friends(
 
    primary key (last_updated, user_a, user_b),
    check (user_a < user_b),
-);
+) strict;
 
-create view if not exists friends_vw
-as select
-   max(last_updated) as last_updated,
-   user_a,
-   user_b,
-   friends_since
-from friends
-where friends_since is not null
-group by user_a, user_b;
+/*
+One row per friendship / combination of user_a, user_b.
+*/
+create view friends_vw as
+   select max(last_updated) as last_updated, *
+   from friends
+   where friends_since is not null
+   group by user_a, user_b;
 
-
-
--- friends.
+create trigger friends_insert instead of insert on friends_vw
+when not exists (
+   select * from friends_vw where 1
+      and new.user_a = user_a
+      and new.user_b = user_b
+      and new.friends_since = friends_since
+)
+begin
+   insert into friends values (
+      new.last_updated,
+      new.user_a,
+      new.user_b,
+      new.friends_since
+   );
+end
