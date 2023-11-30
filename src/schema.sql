@@ -1,5 +1,5 @@
 -- schema v1.0.0
-create table sma_meta(version text not null) strict;
+create table sma_meta(schema_version text not null) strict;
 insert into sma_meta values ('v1.0.0');
 
 create table avatars(
@@ -75,7 +75,6 @@ begin
       new.user_name,
       new.profile_url,
       new.avatar_hash,
-      new.last_logoff,
       new.real_name,
       new.time_created
    );
@@ -118,7 +117,6 @@ begin
    insert into leveling values (
       new.last_updated,
       new.user_id,
-
       new.steam_xp,
       new.steam_level,
       new.steam_xp_needed_to_level_up,
@@ -153,7 +151,6 @@ create table if not exists playtime(
       integer not null,
    playtime_linux_forever
       integer not null,
-
    last_played
       integer not null,
 
@@ -183,11 +180,14 @@ begin
    insert into playtime values (
       new.last_updated,
       new.user_id,
-
-      new.steam_xp,
-      new.steam_level,
-      new.steam_xp_needed_to_level_up,
-      new.steam_xp_needed_current_level
+      new.game_id,
+      new.name,
+      new.playtime_2weeks,
+      new.playtime_forever,
+      new.playtime_windows_forever,
+      new.playtime_mac_forever,
+      new.playtime_linux_forever,
+      new.last_played
    );
 end
 
@@ -213,9 +213,7 @@ create table if not exists friends(
    check (user_a < user_b),
 ) strict;
 
-/*
-One row per friendship / combination of user_a, user_b.
-*/
+-- One row per friendship / combination of user_a, user_b.
 create view friends_vw as
    select max(last_updated) as last_updated, *
    from friends

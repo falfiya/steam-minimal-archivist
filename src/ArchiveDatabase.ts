@@ -7,14 +7,20 @@ import schema from "./schema.sql";
 declare const schema: string;
 
 export class ArchiveDatabase extends Sqlite3Database {
+   schemaVersion = "v1.0.0";
+
    stmtUsers: Statement;
    stmtGames: Statement;
    stmtAvatars: Statement;
    stmtFriends: Statement;
 
-   constructor () {
-      super("data/snapshots.sqlite3");
+   init() {
       this.exec(schema);
+   }
+
+   constructor (location = "data/snapshots.sqlite3") {
+      super(location);
+      this.pragma("foreign_keys = on");
       this.stmtUsers = this.prepare(/* sql */ `
          insert into users values (
             :epoch,
