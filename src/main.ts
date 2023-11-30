@@ -1,10 +1,10 @@
 // this program assumes that the CWD is the repository root!
-import {SteamApi} from "./SteamApi";
-
-import {config} from "./config";
+import {Config} from "./Config";
 import {ArchiveDatabase} from "./ArchiveDatabase";
+import {SteamApi, RecentlyPlayedGame} from "./SteamApi";
 
-const steam = new SteamApi(config.key);
+const config = await Config.new();
+const steam = new SteamApi(config.apiKey);
 const db = new ArchiveDatabase();
 
 // inputs come in two forms and so I'd just like a unified list of steamids
@@ -21,13 +21,26 @@ for (const [summaryNumber, summary] of Object.entries(summaries)) {
    console.log(`${summary.personaname} #${userId}`);
    console.log(`<-> ${summaryNumber + 1} of ${summaries.length}`);
 
-   const avatarHash = await tryArchivingAvatar(summary.avatarhash, summary.avatarfull);
+   // batch all requests
+   const [
+      avatarHash,
+      leveling,
+      friends,
+      recentGames,
+      ownedGames
+   ] = await Promise.all([
+      tryArchivingAvatar(summary.avatarhash, summary.avatarfull),
+      steam.leveling(userId),
+      steam.friendsList(userId),
+      steam.recentGames(userId),
+      steam.ownedGames(userId),
+   ]);
 
    console.log(`<-> Level: ${leveling.player_level}`);
    db.addUser({
       epoch,
       id: BigInt(userId),
-      user_name: currentPlayer.personaname,
+      user_name: summary.personaname,
       profile_url: currentPlayer.profileurl,
       avatar_hash: avatarHash,
       last_logoff: currentPlayer.lastlogoff,

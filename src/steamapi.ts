@@ -1,3 +1,13 @@
+export type RecentlyPlayedGame = {
+   appid: number;
+   name: string;
+   playtime_2weeks: number;
+   playtime_forever: number;
+   img_icon_url: string;
+   playtime_windows_forever: number;
+   playtime_mac_forever: number;
+   playtime_linux_forever: number;
+};
 /** Incomplete implementation of the Steam API */
 export class SteamApi {
    constructor (private key: string) {}
@@ -20,16 +30,7 @@ export class SteamApi {
    }
 
    async recentGames(steamId: string) {
-      type RecentlyPlayedGame = {
-         appid: number;
-         name: string;
-         playtime_2weeks: number;
-         playtime_forever: number;
-         img_icon_url: string;
-         playtime_windows_forever: number;
-         playtime_mac_forever: number;
-         playtime_linux_forever: number;
-      };
+      // type RecentlyPlayed game is going to live outside this function
       type RecentGames = {
          response: {
             total_count: number;

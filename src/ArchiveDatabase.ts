@@ -1,6 +1,3 @@
-// this could probably be sped up by inserting more than one row at a time but
-// I doubt speed's gonna be a concern.
-
 import Sqlite3Database, {Statement} from "better-sqlite3";
 // @ts-expect-error
 import schema from "./schema.sql";
@@ -18,7 +15,7 @@ export class ArchiveDatabase extends Sqlite3Database {
       this.exec(schema);
    }
 
-   constructor (location = "data/snapshots.sqlite3") {
+   constructor (location: string) {
       super(location);
       this.pragma("foreign_keys = on");
       this.stmtUsers = this.prepare(/* sql */ `
@@ -120,3 +117,8 @@ export class ArchiveDatabase extends Sqlite3Database {
       return super.close();
    }
 }
+
+/* Notes Section
+If further optimization is needed, allow inserting multiple rows at a time.
+Otherwise, the db probably isn't the bottleneck.
+*/

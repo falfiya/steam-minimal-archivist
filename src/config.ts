@@ -1,15 +1,44 @@
 import fs from "fs";
+import {createInterface} from "readline/promises";
 
-type ProgramConfig = {
-   key: string;
-   userIds: string[];
-   userUrls: string[];
-};
-try {
-   var config = JSON.parse(fs.readFileSync(".config.json", "utf8")) as unknown as ProgramConfig;
-} catch (e) {
-   console.error(`Could not read .config.json in ${process.cwd()}!`);
-   throw e;
+export class Config {
+   static async new(path = ".config.json"): Promise<Config> {
+      if (fs.existsSync(path)) {
+         const configRaw = fs.readFileSync(path, "utf8");
+         const {
+            apiKey,
+            dbPath,
+            userIds,
+            userUrls,
+         } = JSON.parse(configRaw) as {[k: string]: unknown};
+         if (typeof apiKey !== "string") {
+            throw new Error("Expected config.apiKey to be a string!");
+         }
+         if (typeof dbPath !== "string") {
+            throw new Error("Expected config.dbPath to be a string!");
+         }
+         if (!Array.isArray(userIds)) {
+            throw new Error("Expected config.userIds to be a string[]!");
+         }
+         if (!Array.isArray(userUrls)) {
+            throw new Error("Expected config.uesrUrls to be a string[]!");
+         }
+         return new Config(apiKey, dbPath, userIds, userUrls);
+      } else {
+         const rl = createInterface({
+            input: process.stdin,
+            output: process.stdout,
+            terminal: false,
+         });
+         const apiKey = await rl.question("Paste your Steam API Key:\n> ");
+         return new Config(apiKey);
+      }
+   }
+
+   constructor (
+      public apiKey: string,
+      public dbPath: string = "data/steam-minimal-archivist.sqlite3",
+      public userIds: string[] = [],
+      public userUrls: string[] = [],
+   ) {}
 }
-
-export {config};
