@@ -1,16 +1,11 @@
 // this program assumes that the CWD is the repository root!
-import {SteamApi} from "./SteamApi.js";
+import {SteamApi} from "./SteamApi";
 
-import {config} from "./config.js";
-import {ArchiveDatabase} from "./database.js";
+import {config} from "./config";
+import {ArchiveDatabase} from "./ArchiveDatabase";
 
 const steam = new SteamApi(config.key);
-
-/* Proper handling of Steam Ids
-Steam Ids are too large to fit into a JavaScript Number so we're just gonna pass
-them around as strings.
-
-*/
+const db = new ArchiveDatabase();
 
 // inputs come in two forms and so I'd just like a unified list of steamids
 const combinedUserIds = [
@@ -18,53 +13,23 @@ const combinedUserIds = [
    ...await Promise.all(config.userUrls.map(steam.resolveUrl)),
 ];
 
-const summariesRes = await steam.summaries(combinedUserIds);
-const summaries = summariesRes.response.players;
+const summaries = await steam.summaries(combinedUserIds);
+for (const [summaryNumber, summary] of Object.entries(summaries)) {
+   const epoch = Math.floor(Date.now() / 1000);
 
-if (summaries.length === 1) {
-   console.log("Archiving 1 Steam User");
-} else {
-   console.log(`Archiving ${summaries.length} Steam Users`);
-}
+   const userId = summary.steamid;
+   console.log(`${summary.personaname} #${userId}`);
+   console.log(`<-> ${summaryNumber + 1} of ${summaries.length}`);
 
-const S = new ArchiveDatabase;
-const now = () => Math.floor(Date.now() / 1000);
+   const avatarHash = await tryArchivingAvatar(summary.avatarhash, summary.avatarfull);
 
-for (let i = 0; i < summaries.length; i++) {
-   const currentPlayer = summaries[i]!;
-   const {steamid} = currentPlayer;
-
-   console.log(`${currentPlayer.personaname} #${steamid}`);
-   console.log(`<-> ${i + 1}/${summaries.length}`);
-
-   const pLeveling = API.GetBadges({key, steamid});
-   const pFriends = API.GetFriendList({key, steamid});
-   const pRecentGames = API.GetRecentlyPlayedGames({key, steamid});
-   const pOwnedGames = API.GetOwnedGames({key, steamid});
-
-   let avatar_hash: string | null;
-   try {
-      const avatar = await fetch(currentPlayer.avatarfull);
-      const avatarBuffer = Buffer.from(await avatar.arrayBuffer());
-      if (avatarBuffer.byteLength > 2000000) {
-         throw new Error("Avatar Size Cannot Exceed 2MB!");
-      }
-      S.addAvatar({hash: currentPlayer.avatarhash, data: avatarBuffer});
-      avatar_hash = currentPlayer.avatarhash;
-   } catch (e) {
-      console.error(e);
-      avatar_hash = null;
-   }
-
-   const epoch = now();
-   const leveling = (await pLeveling).response;
    console.log(`<-> Level: ${leveling.player_level}`);
-   S.addUser({
+   db.addUser({
       epoch,
-      id: BigInt(steamid),
+      id: BigInt(userId),
       user_name: currentPlayer.personaname,
       profile_url: currentPlayer.profileurl,
-      avatar_hash,
+      avatar_hash: avatarHash,
       last_logoff: currentPlayer.lastlogoff,
       real_name: currentPlayer.realname,
       time_created: currentPlayer.timecreated,
@@ -74,20 +39,18 @@ for (let i = 0; i < summaries.length; i++) {
       steam_xp_needed_current_level: leveling.player_xp_needed_current_level,
    });
 
-   const friends = (await pFriends).friendslist.friends;
    console.log(`<-> Friends: ${friends.length}`);
 
    for (const friend of friends) {
-      S.addFriend({
+      db.addFriend({
          epoch,
-         source_id: steamid,
+         source_id: userId,
          dest_id: friend.steamid,
          friend_since: friend.friend_since,
       });
       console.log(`<----> ${friend.steamid}`);
    }
 
-   const recentGames = (await pRecentGames).response.games;
    console.log(`<-> Recent Games: ${recentGames.length}`);
    const recentGamesLookup:
       {[appid: string]: API.GetRecentlyPlayedGames.RecentlyPlayedGame}
@@ -96,7 +59,6 @@ for (let i = 0; i < summaries.length; i++) {
       recentGamesLookup[recentGame.appid] = recentGame;
    }
 
-   const ownedGames = (await pOwnedGames).response.games;
    console.log(`<-> Owned Games: ${ownedGames.length}`);
 
    for (const game of ownedGames) {
@@ -110,12 +72,12 @@ for (let i = 0; i < summaries.length; i++) {
 
       const last_played = game.rtime_last_played;
 
-      S.addGame({
+      db.addGame({
          ...game,
          epoch,
          playtime_2weeks,
          last_played,
-         user_id: BigInt(steamid),
+         user_id: BigInt(userId),
          game_id: game.appid,
       });
       process.stdout.write(`<----> ${game.name} @ ${game.playtime_forever}min`);
@@ -126,4 +88,23 @@ for (let i = 0; i < summaries.length; i++) {
    }
 }
 
-S.close();
+db.close();
+
+/**
+ * If the function succeeds, returns the hash of the avatar downloaded and archived.
+ * Otherwise it logs an error to the console and returns null.
+ */
+async function tryArchivingAvatar(hash: string, url: string): Promise<string | null> {
+   try {
+      const avatar = await fetch(url);
+      const avatarBuffer = Buffer.from(await avatar.arrayBuffer());
+      if (avatarBuffer.byteLength > 2000000) {
+         throw new Error("Avatar Size Cannot Exceed 2MB!");
+      }
+      db.addAvatar({hash, data: avatarBuffer});
+      return hash;
+   } catch (e) {
+      console.error(e);
+      return null;
+   }
+}
