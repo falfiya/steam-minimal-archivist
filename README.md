@@ -1,6 +1,8 @@
-# steam-minimal-archivist
+# steam-minimal-archivist v0.2.0
 
 *Unfancy Steam Archivist*
+
+This software is pre-beta! Schema compatibility between versions is not guaranteed!
 
 Steam doesn't keep track of play-time on specific dates so let's do it ourselves. `steam-minimal-archivist` takes a snapshot of your Steam play-time per game, along with some other stuff.
 

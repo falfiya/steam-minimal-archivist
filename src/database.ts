@@ -6,7 +6,7 @@ import Sqlite3Database, {Statement} from "better-sqlite3";
 import schema from "./schema.sql";
 declare const schema: string;
 
-export class SnapshotDB extends Sqlite3Database {
+export class ArchiveDatabase extends Sqlite3Database {
    stmtUsers: Statement;
    stmtGames: Statement;
    stmtAvatars: Statement;
@@ -64,7 +64,7 @@ export class SnapshotDB extends Sqlite3Database {
    addUser(
       o: {
          epoch: number,
-         id: string,
+         id: bigint,
          user_name: string,
          profile_url: string,
          avatar_hash: string | null,
@@ -81,7 +81,7 @@ export class SnapshotDB extends Sqlite3Database {
    addGame(
       o: {
          epoch: number,
-         user_id: string,
+         user_id: bigint,
          game_id: number,
          name: string,
          playtime_2weeks: number | null,

@@ -1,29 +1,24 @@
 // this program assumes that the CWD is the repository root!
-import fs from "fs";
-import * as API from "./steamapi.js";
-import {SnapshotDB} from "./database.js";
+import {SteamApi} from "./SteamApi.js";
 
-type ProgramConfig = {
-   key: string;
-   userIds: string[];
-   userUrls: string[];
-};
-try {
-   var config = JSON.parse(fs.readFileSync(".config.json", "utf8")) as unknown as ProgramConfig;
-} catch (e) {
-   console.error(`Could not read .config.json in ${process.cwd()}!`);
-   throw e;
-}
+import {config} from "./config.js";
+import {ArchiveDatabase} from "./database.js";
 
-const {key} = config;
+const steam = new SteamApi(config.key);
+
+/* Proper handling of Steam Ids
+Steam Ids are too large to fit into a JavaScript Number so we're just gonna pass
+them around as strings.
+
+*/
 
 // inputs come in two forms and so I'd just like a unified list of steamids
-const combinedUserIds = [...config.userIds];
-for (const url of config.userUrls) {
-   combinedUserIds.push(await API.getSteamIdFromUrl({key, url}));
-}
+const combinedUserIds = [
+   ...config.userIds,
+   ...await Promise.all(config.userUrls.map(steam.resolveUrl)),
+];
 
-const summariesRes = await API.GetPlayerSummaries({key, steamids: combinedUserIds});
+const summariesRes = await steam.summaries(combinedUserIds);
 const summaries = summariesRes.response.players;
 
 if (summaries.length === 1) {
@@ -32,7 +27,7 @@ if (summaries.length === 1) {
    console.log(`Archiving ${summaries.length} Steam Users`);
 }
 
-const S = new SnapshotDB;
+const S = new ArchiveDatabase;
 const now = () => Math.floor(Date.now() / 1000);
 
 for (let i = 0; i < summaries.length; i++) {
@@ -66,7 +61,7 @@ for (let i = 0; i < summaries.length; i++) {
    console.log(`<-> Level: ${leveling.player_level}`);
    S.addUser({
       epoch,
-      id: steamid,
+      id: BigInt(steamid),
       user_name: currentPlayer.personaname,
       profile_url: currentPlayer.profileurl,
       avatar_hash,
@@ -120,7 +115,7 @@ for (let i = 0; i < summaries.length; i++) {
          epoch,
          playtime_2weeks,
          last_played,
-         user_id: steamid,
+         user_id: BigInt(steamid),
          game_id: game.appid,
       });
       process.stdout.write(`<----> ${game.name} @ ${game.playtime_forever}min`);
