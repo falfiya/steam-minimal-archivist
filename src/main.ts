@@ -5,7 +5,7 @@ import {SteamApi, RecentlyPlayedGame} from "./SteamApi";
 
 const config = await Config.new();
 const steam = new SteamApi(config.apiKey);
-const db = new ArchiveDatabase();
+const db = new ArchiveDatabase(config.dbPath);
 
 // inputs come in two forms and so I'd just like a unified list of steamids
 const combinedUserIds = [
@@ -29,40 +29,16 @@ for (const [summaryNumber, summary] of Object.entries(summaries)) {
       recentGames,
       ownedGames
    ] = await Promise.all([
-      tryArchivingAvatar(summary.avatarhash, summary.avatarfull),
+      tryArchiveAvatar(summary.avatarhash, summary.avatarfull),
       steam.leveling(userId),
       steam.friendsList(userId),
       steam.recentGames(userId),
       steam.ownedGames(userId),
    ]);
 
-   console.log(`<-> Level: ${leveling.player_level}`);
-   db.addUser({
-      epoch,
-      id: BigInt(userId),
-      user_name: summary.personaname,
-      profile_url: currentPlayer.profileurl,
-      avatar_hash: avatarHash,
-      last_logoff: currentPlayer.lastlogoff,
-      real_name: currentPlayer.realname,
-      time_created: currentPlayer.timecreated,
-      steam_xp: leveling.player_xp,
-      steam_level: leveling.player_level,
-      steam_xp_needed_to_level_up: leveling.player_xp_needed_to_level_up,
-      steam_xp_needed_current_level: leveling.player_xp_needed_current_level,
-   });
-
-   console.log(`<-> Friends: ${friends.length}`);
-
-   for (const friend of friends) {
-      db.addFriend({
-         epoch,
-         source_id: userId,
-         dest_id: friend.steamid,
-         friend_since: friend.friend_since,
-      });
-      console.log(`<----> ${friend.steamid}`);
-   }
+   archiveUsre();
+   archiveUser2(leveling);
+   archiveUserFriends(epoch, userId, friends);
 
    console.log(`<-> Recent Games: ${recentGames.length}`);
    const recentGamesLookup:
@@ -107,7 +83,7 @@ db.close();
  * If the function succeeds, returns the hash of the avatar downloaded and archived.
  * Otherwise it logs an error to the console and returns null.
  */
-async function tryArchivingAvatar(hash: string, url: string): Promise<string | null> {
+async function tryArchiveAvatar(hash: string, url: string): Promise<string | null> {
    try {
       const avatar = await fetch(url);
       const avatarBuffer = Buffer.from(await avatar.arrayBuffer());
@@ -119,5 +95,42 @@ async function tryArchivingAvatar(hash: string, url: string): Promise<string | n
    } catch (e) {
       console.error(e);
       return null;
+   }
+}
+
+function archiveUser2(
+   epoch: number,
+   userId: string,
+   summary: SteamApi.SteamUserSummary,
+   leveling: SteamApi.Leveling,
+) {
+   console.log(`<-> Level: ${leveling.player_level}`);
+   db.addUser({
+      epoch,
+      id: BigInt(userId),
+      user_name: summary.personaname,
+      profile_url: currentPlayer.profileurl,
+      avatar_hash: avatarHash,
+      last_logoff: currentPlayer.lastlogoff,
+      real_name: currentPlayer.realname,
+      time_created: currentPlayer.timecreated,
+      steam_xp: leveling.player_xp,
+      steam_level: leveling.player_level,
+      steam_xp_needed_to_level_up: leveling.player_xp_needed_to_level_up,
+      steam_xp_needed_current_level: leveling.player_xp_needed_current_level,
+   });
+}
+
+function archiveUserFriends(epoch: number, userId: string, friends: SteamApi.FriendsList) {
+   console.log(`<-> Friends: ${friends.length}`);
+
+   for (const friend of friends) {
+      db.addFriend({
+         epoch,
+         source_id: userId,
+         dest_id: friend.steamid,
+         friend_since: friend.friend_since,
+      });
+      console.log(`<----> ${friend.steamid}`);
    }
 }

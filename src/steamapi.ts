@@ -1,13 +1,3 @@
-export type RecentlyPlayedGame = {
-   appid: number;
-   name: string;
-   playtime_2weeks: number;
-   playtime_forever: number;
-   img_icon_url: string;
-   playtime_windows_forever: number;
-   playtime_mac_forever: number;
-   playtime_linux_forever: number;
-};
 /** Incomplete implementation of the Steam API */
 export class SteamApi {
    constructor (private key: string) {}
@@ -31,14 +21,14 @@ export class SteamApi {
 
    async recentGames(steamId: string) {
       // type RecentlyPlayed game is going to live outside this function
-      type RecentGames = {
+      type GetRecentlyPlayedGames = {
          response: {
             total_count: number;
             /** typically this is no more than three long */
-            games: RecentlyPlayedGame[];
+            games: SteamApi.RecentlyPlayedGame[];
          };
       };
-      const res = await this.call<RecentGames>(
+      const res = await this.call<GetRecentlyPlayedGames>(
          "IPlayerService/GetRecentlyPlayedGames/v1",
          `steamid=${steamId}`,
       );
@@ -46,7 +36,7 @@ export class SteamApi {
    }
 
    async ownedGames(steamId: string) {
-      type OwnedGame = {
+      type GetOwnedGames = {
          appid: number;
          name: string;
          playtime_forever: number;
@@ -60,7 +50,7 @@ export class SteamApi {
       type OwnedGames = {
          response: {
             total_count: number;
-            games: OwnedGame[];
+            games: GetOwnedGames[];
          };
       };
       const res = await this.call<OwnedGames>(
@@ -71,7 +61,7 @@ export class SteamApi {
    }
 
    async leveling(steamId: string) {
-      type Badges = {
+      type GetBadges = {
          response: {
             badges: any[];
             player_xp: number;
@@ -80,7 +70,7 @@ export class SteamApi {
             player_xp_needed_current_level: number;
          };
       };
-      const res = await this.call<Badges>(
+      const res = await this.call<GetBadges>(
          "IPlayerService/GetBadges/v1",
          `steamid=${steamId}`,
       );
@@ -94,12 +84,12 @@ export class SteamApi {
          relationship: string;
          friend_since: number;
       };
-      type FriendsList = {
+      type GetFriendList = {
          friendslist: {
             friends: Friend[];
          };
       };
-      const res = await this.call<FriendsList>(
+      const res = await this.call<GetFriendList>(
          "ISteamUser/GetFriendList/v1",
          `steamid=${steamId}`,
       );
@@ -107,29 +97,12 @@ export class SteamApi {
    }
 
    async summaries(steamIds: string[]) {
-      type SteamUserSummary = {
-         steamid: string;
-         communityvisibilitystate: number;
-         profilestate: number;
-         personaname: string;
-         profileurl: string;
-         avatarfull: string;
-         avatarhash: string;
-         lastlogoff: number;
-         personastate: number;
-         realname: string;
-         primaryclanid: string;
-         timecreated: number;
-         personastateflags: number;
-         loccountrycode?: string;
-         locstatecode?: string;
-      };
-      type Summaries = {
+      type GetPlayerSummaries = {
          response: {
-            players: SteamUserSummary[];
+            players: SteamApi.SteamUserSummary[];
          };
       };
-      const res = await this.call<Summaries>(
+      const res = await this.call<GetPlayerSummaries>(
          "ISteamUser/GetPlayerSummaries/v2",
          `steamids=${steamIds.join(',')}`,
       );
@@ -137,13 +110,13 @@ export class SteamApi {
    }
 
    async resolveVanityUrl(vanityUrl: string) {
-      type ResolveVanityUrl = {
+      type ResolveVanityURL = {
          response: {
             steamid: string;
             success: 1;
          };
       };
-      const res = await this.call<ResolveVanityUrl>(
+      const res = await this.call<ResolveVanityURL>(
          "ISteamUser/ResolveVanityURL/v1",
          `vanityurl=${vanityUrl}`,
       );
@@ -164,4 +137,45 @@ export class SteamApi {
          throw new Error(`Cannot recognize the url ${JSON.stringify(url)} as a Steam Profile URL`);
       }
    }
+}
+export namespace SteamApi {
+   export type RecentlyPlayedGame = {
+      appid: number;
+      name: string;
+      playtime_2weeks: number;
+      playtime_forever: number;
+      img_icon_url: string;
+      playtime_windows_forever: number;
+      playtime_mac_forever: number;
+      playtime_linux_forever: number;
+   };
+
+   export type SteamUserSummary = {
+      steamid: string;
+      communityvisibilitystate: number;
+      profilestate: number;
+      personaname: string;
+      profileurl: string;
+      avatarfull: string;
+      avatarhash: string;
+      lastlogoff: number;
+      personastate: number;
+      realname: string;
+      primaryclanid: string;
+      timecreated: number;
+      personastateflags: number;
+      loccountrycode?: string;
+      locstatecode?: string;
+   };
+
+   type ReturnOf<methodName extends keyof SteamApi> =
+      ReturnType<SteamApi[methodName]> extends Promise<infer T>
+      ? T
+      : never;
+
+   export type RecentGames = ReturnOf<"recentGames">;
+   export type OwnedGames = ReturnOf<"ownedGames">;
+   export type Leveling = ReturnOf<"leveling">;
+   export type FriendsList = ReturnOf<"friendsList">;
+   export type Summaries = ReturnOf<"summaries">;
 }
