@@ -1,6 +1,6 @@
 -- schema v1.0.0
-create table sma_meta(schema_version text not null) strict;
-insert into sma_meta values ('v1.0.0');
+create table sma_meta(schema_version integer not null) strict;
+insert into sma_meta values (1);
 
 create table avatars(
    hash
@@ -36,7 +36,7 @@ create table users2(
    avatar_hash
       text,
    real_name
-      text not null,
+      text,
    time_created -- as far as I know, this shouldn't change ever
       integer not null,
 
@@ -60,7 +60,7 @@ This view keeps only the latest record for specific user_ids.
 There should only be one row per user_id.
 */
 create view users2_vw as
-   select max(last_updated) as last_updated, *
+   select max(last_updated), *
       from users2
       group by user_id;
 /*
@@ -68,7 +68,7 @@ If there's a similar record, i.e. all fields are the same except for
 last_updated, then we don't actually want to insert anything. If a similar
 record does NOT EXISTS, then we'll insert a new row.
 */
-create trigger users2_insert instead of insert on users2
+create trigger users2_insert instead of insert on users2_vw
 when not exists (
    select * from users2_vw where 1
       and new.user_name = user_name
@@ -105,7 +105,30 @@ https://partner.steamgames.com/doc/store/editing/name
 > store page has been through the pre-release review process.
 
 It seems to me that the game name can actually change.
+
+This table might be overkill though but I got nervy.
 */
+create table games(
+   last_updated
+      integer not null,
+   id
+      integer not null,
+
+   name
+      text not null,
+) strict;
+
+create view games_vw as
+   select max(last_updated), *
+   from games
+   group by id;
+
+create trigger games_insert instead of insert on games_vw
+when not exists (select * from games_vw where new.id = id and new.name = name)
+begin
+   insert into games values (new.last_updated, new.id, new.name);
+end
+
 create table playtime(
    last_updated
       integer not null,
@@ -114,8 +137,6 @@ create table playtime(
    game_id
       integer not null,
 
-   name
-      text not null,
    playtime_2weeks
       integer,
    playtime_forever
@@ -130,11 +151,12 @@ create table playtime(
       integer not null,
 
    primary key (last_updated, user_id, game_id),
-   foreign key (last_updated, user_id) references users(last_updated, id)
+   foreign key (game_id) references games(id),
+   foreign key (last_updated, user_id) references users(last_updated, id),
 ) strict;
 
 create view playtime_vw as
-   select max(last_updated) as last_updated, *
+   select max(last_updated), *
    from playtime
    group by user_id, game_id;
 
@@ -143,7 +165,6 @@ when not exists (
    select * from playtime_vw where 1
       and new.user_id = user_id
       and new.game_id = game_id
-      and new.name = name
       and new.playtime_2weeks = playtime_2weeks
       and new.playtime_forever = playtime_forever
       and new.playtime_windows_forever = playtime_windows_forever
@@ -156,7 +177,6 @@ begin
       new.last_updated,
       new.user_id,
       new.game_id,
-      new.name,
       new.playtime_2weeks,
       new.playtime_forever,
       new.playtime_windows_forever,
@@ -185,12 +205,13 @@ create table friends(
       integer,
 
    primary key (last_updated, user_a, user_b),
-   check (user_a < user_b),
+   check (user_a <> user_b),
+   check (user_a < user_b)
 ) strict;
 
 -- One row per friendship / combination of user_a, user_b.
 create view friends_vw as
-   select max(last_updated) as last_updated, *
+   select max(last_updated), *
    from friends
    where friends_since is not null
    group by user_a, user_b;

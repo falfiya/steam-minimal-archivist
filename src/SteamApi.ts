@@ -1,3 +1,4 @@
+type SteamId = string | bigint;
 /** Incomplete implementation of the Steam API */
 export class SteamApi {
    constructor (private key: string) {}
@@ -19,13 +20,23 @@ export class SteamApi {
       }
    }
 
-   async recentGames(steamId: string) {
+   async recentGames(steamId: SteamId) {
+      type RecentlyPlayedGame = {
+         appid: number;
+         name: string;
+         playtime_2weeks: number;
+         playtime_forever: number;
+         img_icon_url: string;
+         playtime_windows_forever: number;
+         playtime_mac_forever: number;
+         playtime_linux_forever: number;
+      };
       // type RecentlyPlayed game is going to live outside this function
       type GetRecentlyPlayedGames = {
          response: {
             total_count: number;
             /** typically this is no more than three long */
-            games: SteamApi.RecentlyPlayedGame[];
+            games: RecentlyPlayedGame[];
          };
       };
       const res = await this.call<GetRecentlyPlayedGames>(
@@ -35,8 +46,8 @@ export class SteamApi {
       return res.response.games;
    }
 
-   async ownedGames(steamId: string) {
-      type GetOwnedGames = {
+   async ownedGames(steamId: SteamId) {
+      type OwnedGame = {
          appid: number;
          name: string;
          playtime_forever: number;
@@ -47,20 +58,20 @@ export class SteamApi {
          rtime_last_played: number;
          playtime_disconnected: number;
       };
-      type OwnedGames = {
+      type GetOwnedGames = {
          response: {
             total_count: number;
-            games: GetOwnedGames[];
+            games: OwnedGame[];
          };
       };
-      const res = await this.call<OwnedGames>(
+      const res = await this.call<GetOwnedGames>(
          "IPlayerService/GetOwnedGames/v1",
          `steamid=${steamId}&include_appinfo=true&include_played_free_games=true`
       );
       return res.response.games;
    }
 
-   async leveling(steamId: string) {
+   async leveling(steamId: SteamId) {
       type GetBadges = {
          response: {
             badges: any[];
@@ -77,7 +88,7 @@ export class SteamApi {
       return res.response;
    }
 
-   async friendsList(steamId: string) {
+   async friendsList(steamId: SteamId) {
       type Friend = {
          steamid: string;
          /** usually "friend" it seems */
@@ -96,10 +107,27 @@ export class SteamApi {
       return res.friendslist.friends;
    }
 
-   async summaries(steamIds: string[]) {
+   async summaries(steamIds: SteamId[]) {
+      type SteamUserSummary = {
+         steamid: string;
+         communityvisibilitystate: number;
+         profilestate: number;
+         personaname: string;
+         profileurl: string;
+         avatarfull: string;
+         avatarhash: string;
+         lastlogoff: number;
+         personastate: number;
+         realname?: string;
+         primaryclanid: string;
+         timecreated: number;
+         personastateflags: number;
+         loccountrycode?: string;
+         locstatecode?: string;
+      }
       type GetPlayerSummaries = {
          response: {
-            players: SteamApi.SteamUserSummary[];
+            players: SteamUserSummary[];
          };
       };
       const res = await this.call<GetPlayerSummaries>(
@@ -139,35 +167,6 @@ export class SteamApi {
    }
 }
 export namespace SteamApi {
-   export type RecentlyPlayedGame = {
-      appid: number;
-      name: string;
-      playtime_2weeks: number;
-      playtime_forever: number;
-      img_icon_url: string;
-      playtime_windows_forever: number;
-      playtime_mac_forever: number;
-      playtime_linux_forever: number;
-   };
-
-   export type SteamUserSummary = {
-      steamid: string;
-      communityvisibilitystate: number;
-      profilestate: number;
-      personaname: string;
-      profileurl: string;
-      avatarfull: string;
-      avatarhash: string;
-      lastlogoff: number;
-      personastate: number;
-      realname: string;
-      primaryclanid: string;
-      timecreated: number;
-      personastateflags: number;
-      loccountrycode?: string;
-      locstatecode?: string;
-   };
-
    type ReturnOf<methodName extends keyof SteamApi> =
       ReturnType<SteamApi[methodName]> extends Promise<infer T>
       ? T

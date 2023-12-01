@@ -10,7 +10,7 @@ export class Config {
             dbPath,
             userIds,
             userUrls,
-         } = JSON.parse(configRaw) as {[k: string]: unknown};
+         } = JSON.parse(configRaw) as Record<string, unknown>;
          if (typeof apiKey !== "string") {
             throw new Error("Expected config.apiKey to be a string!");
          }
@@ -21,7 +21,7 @@ export class Config {
             throw new Error("Expected config.userIds to be a string[]!");
          }
          if (!Array.isArray(userUrls)) {
-            throw new Error("Expected config.uesrUrls to be a string[]!");
+            throw new Error("Expected config.userUrls to be a string[]!");
          }
          return new Config(apiKey, dbPath, userIds, userUrls);
       } else {
@@ -31,7 +31,9 @@ export class Config {
             terminal: false,
          });
          const apiKey = await rl.question("Paste your Steam API Key:\n> ");
-         return new Config(apiKey);
+         const config = new Config(apiKey);
+         fs.writeFileSync(path, JSON.stringify(config, null, '\t'));
+         return config;
       }
    }
 
