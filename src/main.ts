@@ -173,6 +173,7 @@ db.close();
  */
 async function tryArchiveAvatar(hash: string, url: string): Promise<string | null> {
    if (db.haveAvatar({hash})) {
+      console.log(`had ${hash}`);
       return hash;
    }
    try {

@@ -93,16 +93,16 @@ record does NOT EXISTS, then we'll insert a new row.
 create trigger users2_insert instead of insert on users2_vw
 when not exists (
    select * from users2_vw where 1
-      and new.id = id
-      and new.user_name = user_name
-      and new.profile_url = profile_url
-      and new.avatar_hash = avatar_hash
-      and new.real_name = real_name
-      and new.time_created = time_created
-      and new.steam_xp = steam_xp
-      and new.steam_level = steam_level
-      and new.steam_xp_needed_to_level_up = steam_xp_needed_to_level_up
-      and new.steam_xp_needed_current_level = steam_xp_needed_current_level
+      and new.id is id
+      and new.user_name is user_name
+      and new.profile_url is profile_url
+      and new.avatar_hash is avatar_hash
+      and new.real_name is real_name
+      and new.time_created is time_created
+      and new.steam_xp is steam_xp
+      and new.steam_level is steam_level
+      and new.steam_xp_needed_to_level_up is steam_xp_needed_to_level_up
+      and new.steam_xp_needed_current_level is steam_xp_needed_current_level
 )
 begin
    insert into users2 values (
@@ -132,9 +132,9 @@ It seems to me that the game name can actually change.
 This table might be overkill though but I got nervy.
 */
 create table games(
-   id
-      integer not null,
    last_updated
+      integer not null,
+   id
       integer not null,
    name
       text not null,
@@ -150,7 +150,11 @@ create view games_vw as
    group by id;
 
 create trigger games_insert instead of insert on games_vw
-when not exists (select * from games_vw where new.id = id and new.name = name)
+when not exists (
+   select * from games_vw where 1
+      and new.id is id
+      and new.name is name
+)
 begin
    insert into games values (new.last_updated, new.id, new.name);
 end;
@@ -199,20 +203,21 @@ create view playtime_vw as
 create trigger playtime_insert instead of insert on playtime_vw
 when not exists (
    select * from playtime_vw where 1
-      and new.user_id = user_id
-      and new.game_id = game_id
-      and new.playtime_2weeks = playtime_2weeks
-      and new.playtime_forever = playtime_forever
-      and new.playtime_windows_forever = playtime_windows_forever
-      and new.playtime_mac_forever = playtime_mac_forever
-      and new.playtime_linux_forever = playtime_linux_forever
-      and new.last_played = last_played
+      and new.user_id is user_id
+      and new.game_id is game_id
+      and new.playtime_2weeks is playtime_2weeks
+      and new.playtime_forever is playtime_forever
+      and new.playtime_windows_forever is playtime_windows_forever
+      and new.playtime_mac_forever is playtime_mac_forever
+      and new.playtime_linux_forever is playtime_linux_forever
+      and new.last_played is last_played
 )
 begin
    insert into playtime values (
       new.last_updated,
       new.user_id,
       new.game_id,
+
       new.playtime_2weeks,
       new.playtime_forever,
       new.playtime_windows_forever,
@@ -259,9 +264,9 @@ create view friends_vw as
 create trigger friends_insert instead of insert on friends_vw
 when not exists (
    select * from friends_vw where 1
-      and new.user_a = user_a
-      and new.user_b = user_b
-      and new.friends_since = friends_since
+      and new.user_a is user_a
+      and new.user_b is user_b
+      and new.friends_since is friends_since
 )
 begin
    insert into friends values (

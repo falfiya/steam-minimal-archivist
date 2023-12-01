@@ -12,7 +12,7 @@ declare const schema: string;
 
 namespace haveAvatar {
    export const sql = /* sql */ `
-      select count(*) from avatars where hash = :hash;
+      select count(*) as count from avatars where hash = :hash;
    `;
    export type params = {hash: string};
 }
@@ -203,7 +203,7 @@ export class ArchiveDatabase extends Sqlite3Database {
    }
 
    haveAvatar(p: haveAvatar.params): boolean {
-      return !!this.stmtHaveAvatar.get(p);
+      return !!(this.stmtHaveAvatar.get(p) as any).count;
    }
 
    addAvatar(p: addAvatar.params) {
@@ -211,12 +211,10 @@ export class ArchiveDatabase extends Sqlite3Database {
    }
 
    addUser(p: addUser.params) {
-      console.log(p);
       this.stmtAddUser.run(p);
    }
 
    addUser2(p: addUser2.params) {
-      console.log(p);
       this.stmtAddUser2.run(p);
    }
 
