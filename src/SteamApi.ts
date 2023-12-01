@@ -1,7 +1,10 @@
 type SteamId = string | bigint;
 /** Incomplete implementation of the Steam API */
 export class SteamApi {
-   constructor (private key: string) {}
+   static new(key: string): SteamApi {
+      return new SteamApi(key);
+   }
+   private constructor (private key: string) {}
    /** Call the API and decode the JSON. Handle errors too. */
    async call<T>(endpoint: string, queryString: string): Promise<T> {
       const url = `https://api.steampowered.com/${endpoint}?key=${this.key}&${queryString}`;

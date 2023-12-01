@@ -15,11 +15,20 @@ create table users(
    last_updated
       integer not null,
    id
-      integer(17) not null,
+      integer not null,
 
    last_logoff
       integer not null,
    primary key (last_updated, id)
+) strict;
+
+create table simple(
+   last_updated
+      integer not null,
+   id
+      integer not null,
+   primary key (last_updated, id),
+   foreign key (last_updated, id) references users(last_updated, id)
 ) strict;
 
 -- infrequent user changes
@@ -27,7 +36,7 @@ create table users2(
    last_updated
       integer not null,
    id
-      integer(17) not null,
+      integer not null,
 
    user_name
       text not null,
@@ -60,9 +69,22 @@ This view keeps only the latest record for specific user_ids.
 There should only be one row per user_id.
 */
 create view users2_vw as
-   select max(last_updated), *
-      from users2
-      group by user_id;
+   select
+      max(last_updated) as last_updated,
+      id,
+
+      user_name,
+      profile_url,
+      avatar_hash,
+      real_name,
+      time_created,
+
+      steam_xp,
+      steam_level,
+      steam_xp_needed_to_level_up,
+      steam_xp_needed_current_level
+   from users2
+   group by id;
 /*
 If there's a similar record, i.e. all fields are the same except for
 last_updated, then we don't actually want to insert anything. If a similar
@@ -71,6 +93,7 @@ record does NOT EXISTS, then we'll insert a new row.
 create trigger users2_insert instead of insert on users2_vw
 when not exists (
    select * from users2_vw where 1
+      and new.id = id
       and new.user_name = user_name
       and new.profile_url = profile_url
       and new.avatar_hash = avatar_hash
@@ -84,7 +107,7 @@ when not exists (
 begin
    insert into users2 values (
       new.last_updated,
-      new.user_id,
+      new.id,
 
       new.user_name,
       new.profile_url,
@@ -97,7 +120,7 @@ begin
       new.steam_xp_needed_to_level_up,
       new.steam_xp_needed_current_level
    );
-end
+end;
 
 /*
 https://partner.steamgames.com/doc/store/editing/name
@@ -109,17 +132,20 @@ It seems to me that the game name can actually change.
 This table might be overkill though but I got nervy.
 */
 create table games(
-   last_updated
-      integer not null,
    id
       integer not null,
-
+   last_updated
+      integer not null,
    name
       text not null,
+   primary key (id)
 ) strict;
 
 create view games_vw as
-   select max(last_updated), *
+   select
+      max(last_updated) as last_updated,
+      id,
+      name
    from games
    group by id;
 
@@ -127,13 +153,13 @@ create trigger games_insert instead of insert on games_vw
 when not exists (select * from games_vw where new.id = id and new.name = name)
 begin
    insert into games values (new.last_updated, new.id, new.name);
-end
+end;
 
 create table playtime(
    last_updated
       integer not null,
    user_id
-      integer(17) not null,
+      integer not null,
    game_id
       integer not null,
 
@@ -152,11 +178,21 @@ create table playtime(
 
    primary key (last_updated, user_id, game_id),
    foreign key (game_id) references games(id),
-   foreign key (last_updated, user_id) references users(last_updated, id),
+   foreign key (last_updated, user_id) references users(last_updated, id)
 ) strict;
 
 create view playtime_vw as
-   select max(last_updated), *
+   select
+      max(last_updated) as last_updated,
+      user_id,
+      game_id,
+
+      playtime_2weeks,
+      playtime_forever,
+      playtime_windows_forever,
+      playtime_mac_forever,
+      playtime_linux_forever,
+      last_played
    from playtime
    group by user_id, game_id;
 
@@ -184,7 +220,7 @@ begin
       new.playtime_linux_forever,
       new.last_played
    );
-end
+end;
 
 /*
 Bidirectional relationship.
@@ -196,9 +232,9 @@ create table friends(
       integer not null,
 
    user_a
-      integer(17) not null,
+      integer not null,
    user_b
-      integer(17) not null,
+      integer not null,
 
    -- null means not friends
    friends_since
@@ -211,7 +247,11 @@ create table friends(
 
 -- One row per friendship / combination of user_a, user_b.
 create view friends_vw as
-   select max(last_updated), *
+   select
+      max(last_updated) as last_updated,
+      user_a,
+      user_b,
+      friends_since
    from friends
    where friends_since is not null
    group by user_a, user_b;
@@ -230,4 +270,4 @@ begin
       new.user_b,
       new.friends_since
    );
-end
+end;

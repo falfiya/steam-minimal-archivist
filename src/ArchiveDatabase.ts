@@ -55,6 +55,7 @@ namespace addUser2 {
          :avatar_hash,
          :real_name,
          :time_created,
+
          :steam_xp,
          :steam_level,
          :steam_xp_needed_to_level_up,
@@ -173,7 +174,7 @@ export class ArchiveDatabase extends Sqlite3Database {
       return new ArchiveDatabase(location);
    }
 
-   constructor (location: string) {
+   private constructor (location: string) {
       super(location, {fileMustExist: true});
       this.pragma("foreign_keys = on");
       this.verify();
@@ -194,7 +195,7 @@ export class ArchiveDatabase extends Sqlite3Database {
       const selectStmt = this.prepare(/* sql */ `
          select schema_version from sma_meta;
       `);
-      const diskVersion = selectStmt.get();
+      const diskVersion = (selectStmt.get() as any).schema_version;
       const adapterVersion = this.schemaVersion;
       if (diskVersion !== adapterVersion) {
          throw new Error(`The schema on disk is ${diskVersion} but the adapter version is ${adapterVersion}!`);
@@ -210,10 +211,12 @@ export class ArchiveDatabase extends Sqlite3Database {
    }
 
    addUser(p: addUser.params) {
+      console.log(p);
       this.stmtAddUser.run(p);
    }
 
    addUser2(p: addUser2.params) {
+      console.log(p);
       this.stmtAddUser2.run(p);
    }
 

@@ -4,11 +4,8 @@ else
 	PATH := ./node_modules/.bin:$(PATH)
 endif
 
-run: build .config.json
+run: build
 	node js/main
-
-config.json:
-	node util/config
 
 opts := --bundle
 opts += --format=esm

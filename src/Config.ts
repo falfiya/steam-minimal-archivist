@@ -32,12 +32,12 @@ export class Config {
          });
          const apiKey = await rl.question("Paste your Steam API Key:\n> ");
          const config = new Config(apiKey);
-         fs.writeFileSync(path, JSON.stringify(config, null, '\t'));
+         fs.writeFileSync(path, JSON.stringify(config, null, 3));
          return config;
       }
    }
 
-   constructor (
+   private constructor (
       public apiKey: string,
       public dbPath: string = "data/steam-minimal-archivist.sqlite3",
       public userIds: string[] = [],

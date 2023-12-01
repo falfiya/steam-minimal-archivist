@@ -4,8 +4,8 @@ import {SteamApi} from "./SteamApi";
 import {ArchiveDatabase} from "./ArchiveDatabase";
 
 const config = await Config.new();
-const steam = new SteamApi(config.apiKey);
-const db = new ArchiveDatabase(config.dbPath);
+const steam = SteamApi.new(config.apiKey);
+const db = ArchiveDatabase.new(config.dbPath);
 
 // inputs come in two forms and so I'd just like a unified list of steamids
 const combinedUserIds = [
@@ -15,7 +15,7 @@ const combinedUserIds = [
 
 const summaries = await steam.summaries(combinedUserIds);
 for (const [i, summary] of Object.entries(summaries)) {
-   const batchNumber = i + 1;
+   const batchNumber = Number(i) + 1;
    const userId = BigInt(summary.steamid);
    const userName = summary.personaname;
 
