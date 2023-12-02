@@ -1,134 +1,195 @@
 // this program assumes that the CWD is the repository root!
-import fs from "fs";
-import * as API from "./steamapi.js";
-import {SnapshotDB} from "./database.js";
+import {Config} from "./Config";
+import {SteamApi} from "./SteamApi";
+import {ArchiveDatabase} from "./ArchiveDatabase";
 
-type ProgramConfig = {
-   key: string;
-   userIds: string[];
-   userUrls: string[];
-};
-try {
-   var config = JSON.parse(fs.readFileSync(".config.json", "utf8")) as unknown as ProgramConfig;
-} catch (e) {
-   console.error(`Could not read .config.json in ${process.cwd()}!`);
-   throw e;
+const config = await Config.new();
+if (config.userIds.length === 0 && config.userUrls.length === 0) {
+   console.log("Nothing to archive! Quitting...\n");
 }
 
-const {key} = config;
+const steam = SteamApi.new(config.apiKey);
+const db = ArchiveDatabase.new(config.dbPath);
 
 // inputs come in two forms and so I'd just like a unified list of steamids
-const combinedUserIds = [...config.userIds];
-for (const url of config.userUrls) {
-   combinedUserIds.push(await API.getSteamIdFromUrl({key, url}));
-}
+const combinedUserIds = [
+   ...config.userIds,
+   ...await Promise.all(config.userUrls.map(steam.resolveUrl)),
+];
 
-const summariesRes = await API.GetPlayerSummaries({key, steamids: combinedUserIds});
-const summaries = summariesRes.response.players;
+const summaries = await steam.summaries(combinedUserIds);
+for (const [i, summary] of Object.entries(summaries)) {
+   const batchNumber = Number(i) + 1;
+   const userId = BigInt(summary.steamid);
+   const userName = summary.personaname;
 
-if (summaries.length === 1) {
-   console.log("Archiving 1 Steam User");
-} else {
-   console.log(`Archiving ${summaries.length} Steam Users`);
-}
+   // batch all requests
+   const [
+      avatarHash,
+      leveling,
+      freshFriends,
+      recentGames,
+      ownedGames
+   ] = await Promise.all([
+      tryArchiveAvatar(summary.avatarhash, summary.avatarfull),
+      steam.leveling(userId),
+      steam.friendsList(userId),
+      steam.recentGames(userId),
+      steam.ownedGames(userId),
+   ]);
 
-const S = new SnapshotDB;
-const now = () => Math.floor(Date.now() / 1000);
-
-for (let i = 0; i < summaries.length; i++) {
-   const currentPlayer = summaries[i]!;
-   const {steamid} = currentPlayer;
-
-   console.log(`${currentPlayer.personaname} #${steamid}`);
-   console.log(`<-> ${i + 1}/${summaries.length}`);
-
-   const pLeveling = API.GetBadges({key, steamid});
-   const pFriends = API.GetFriendList({key, steamid});
-   const pRecentGames = API.GetRecentlyPlayedGames({key, steamid});
-   const pOwnedGames = API.GetOwnedGames({key, steamid});
-
-   let avatar_hash: string | null;
-   try {
-      const avatar = await fetch(currentPlayer.avatarfull);
-      const avatarBuffer = Buffer.from(await avatar.arrayBuffer());
-      if (avatarBuffer.byteLength > 2000000) {
-         throw new Error("Avatar Size Cannot Exceed 2MB!");
-      }
-      S.addAvatar({hash: currentPlayer.avatarhash, data: avatarBuffer});
-      avatar_hash = currentPlayer.avatarhash;
-   } catch (e) {
-      console.error(e);
-      avatar_hash = null;
-   }
-
-   const epoch = now();
-   const leveling = (await pLeveling).response;
+   const epoch = Math.floor(Date.now() / 1000);
+   console.log(`${userName} #${userId}`);
+   console.log(`<-> ${batchNumber} of ${summaries.length}`);
+   console.log(`<-> Time is ${epoch}`);
    console.log(`<-> Level: ${leveling.player_level}`);
-   S.addUser({
-      epoch,
-      id: steamid,
-      user_name: currentPlayer.personaname,
-      profile_url: currentPlayer.profileurl,
-      avatar_hash,
-      last_logoff: currentPlayer.lastlogoff,
-      real_name: currentPlayer.realname,
-      time_created: currentPlayer.timecreated,
+
+   db.addUser({
+      last_updated: epoch,
+      id: userId,
+      last_logoff: summary.lastlogoff,
+   });
+
+   db.addUser2({
+      last_updated: epoch,
+      id: userId,
+      user_name: userName,
+      profile_url: summary.profileurl,
+      avatar_hash: avatarHash,
+      real_name: summary.realname ?? null,
+      time_created: summary.timecreated,
       steam_xp: leveling.player_xp,
       steam_level: leveling.player_level,
       steam_xp_needed_to_level_up: leveling.player_xp_needed_to_level_up,
       steam_xp_needed_current_level: leveling.player_xp_needed_current_level,
    });
 
-   const friends = (await pFriends).friendslist.friends;
-   console.log(`<-> Friends: ${friends.length}`);
-
-   for (const friend of friends) {
-      S.addFriend({
-         epoch,
-         source_id: steamid,
-         dest_id: friend.steamid,
-         friend_since: friend.friend_since,
-      });
-      console.log(`<----> ${friend.steamid}`);
-   }
-
-   const recentGames = (await pRecentGames).response.games;
    console.log(`<-> Recent Games: ${recentGames.length}`);
-   const recentGamesLookup:
-      {[appid: string]: API.GetRecentlyPlayedGames.RecentlyPlayedGame}
-         = {};
+   const playtime2WeeksLookup: {[appid: string]: number} = Object.create(null);
    for (const recentGame of recentGames) {
-      recentGamesLookup[recentGame.appid] = recentGame;
+      playtime2WeeksLookup[recentGame.appid] = recentGame.playtime_2weeks;
    }
 
-   const ownedGames = (await pOwnedGames).response.games;
    console.log(`<-> Owned Games: ${ownedGames.length}`);
-
    for (const game of ownedGames) {
-      const recentGame = recentGamesLookup[game.appid];
-      let playtime_2weeks: number | null;
-      if (recentGame) {
-         playtime_2weeks = recentGame.playtime_2weeks;
-      } else {
-         playtime_2weeks = null;
-      }
-
+      const playtime_2weeks = playtime2WeeksLookup[game.appid] ?? null;
       const last_played = game.rtime_last_played;
 
-      S.addGame({
-         ...game,
-         epoch,
-         playtime_2weeks,
-         last_played,
-         user_id: steamid,
-         game_id: game.appid,
+      db.addGame({
+         last_updated: epoch,
+         id: game.appid,
+         name: game.name,
       });
-      process.stdout.write(`<----> ${game.name} @ ${game.playtime_forever}min`);
+
+      const {
+         playtime_forever,
+         playtime_windows_forever,
+         playtime_mac_forever,
+         playtime_linux_forever,
+      } = game;
+
+      db.addPlaytime({
+         last_updated: epoch,
+         user_id: userId,
+         game_id: game.appid,
+         playtime_2weeks,
+         playtime_forever,
+         playtime_windows_forever,
+         playtime_mac_forever,
+         playtime_linux_forever,
+         last_played,
+      });
+
+      let gameString = `<----> ${game.name} @ ${game.playtime_forever}min`;
       if (playtime_2weeks) {
-         process.stdout.write(` ~ ${playtime_2weeks}min`);
+         gameString += ` ~ ${playtime_2weeks}min`;
       }
-      process.stdout.write("\n")
+      console.log(gameString);
+   }
+
+   const staleFriends = db.getFriends({user_id: userId});
+   const friendCountDiff = freshFriends.length - staleFriends.length;
+   console.log(`<-> Friends: ${freshFriends.length}`);
+   if (friendCountDiff < 0) {
+      console.log(`<-> Previously: ${staleFriends.length} (${friendCountDiff})`);
+   } else if (friendCountDiff > 0) {
+      console.log(`<-> Previously: ${staleFriends.length} (+${friendCountDiff})`);
+   } else {
+      console.log(`<-> Previously: ${staleFriends.length}`);
+   }
+
+   const friendsNotAccountedFor = new Set(staleFriends);
+   for (const freshFriend of freshFriends) {
+      const {friend_since} = freshFriend;
+      const friendId = BigInt(freshFriend.steamid);
+      const wasStale = friendsNotAccountedFor.delete(friendId);
+      if (!wasStale) {
+         console.log(`<---> + #${friendId}`);
+      }
+
+      if (userId === friendId) {
+         throw new Error(`SANITY: #${userId} is friends with themselves??????`);
+      }
+
+      // love it when Math.min doesn't work on bigints!
+      if (userId < friendId) {
+         var user_a = userId;
+         var user_b = friendId;
+      } else {
+         var user_a = friendId;
+         var user_b = userId;
+      }
+
+      db.addFriend({
+         last_updated: epoch,
+         user_a,
+         user_b,
+         friend_since,
+      });
+   }
+   // and now friendsNotAccountedFor contains only friends that were removed
+   for (const removedFriendId of friendsNotAccountedFor) {
+      console.log(`<---> - #${removedFriendId}`);
+
+      if (userId < removedFriendId) {
+         var user_a = userId;
+         var user_b = removedFriendId;
+      } else {
+         var user_a = removedFriendId;
+         var user_b = userId;
+      }
+
+      const notFriends = null;
+      db.addFriend({
+         last_updated: epoch,
+         user_a,
+         user_b,
+         friend_since: notFriends,
+      });
    }
 }
 
-S.close();
+db.close();
+
+/**
+ * If the function succeeds, returns the hash of the avatar downloaded and archived.
+ * Otherwise it logs an error to the console and returns null.
+ */
+async function tryArchiveAvatar(hash: string, url: string): Promise<string | null> {
+   if (db.haveAvatar({hash})) {
+      console.log(`had ${hash}`);
+      return hash;
+   }
+   try {
+      const avatar = await fetch(url);
+      const avatarBuffer = Buffer.from(await avatar.arrayBuffer());
+      if (avatarBuffer.byteLength > 2000000) {
+         throw new Error("Avatar Size Cannot Exceed 2MB!");
+      }
+      db.addAvatar({hash, data: avatarBuffer});
+      return hash;
+   } catch (e) {
+      console.error(e);
+      return null;
+   }
+}

@@ -19,8 +19,8 @@
       "strictPropertyInitialization": true,
       "useUnknownInCatchVariables": true,
       // modules
-      "module": "node16",
-      "moduleResolution": "node16",
+      "module": "es2022",
+      "moduleResolution": "bundler",
       // emit
       "newLine": "lf",
       "noEmit": true,
