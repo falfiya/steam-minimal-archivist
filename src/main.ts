@@ -4,6 +4,10 @@ import {SteamApi} from "./SteamApi";
 import {ArchiveDatabase} from "./ArchiveDatabase";
 
 const config = await Config.new();
+if (config.userIds.length === 0 && config.userUrls.length === 0) {
+   console.log("Nothing to archive! Quitting...\n");
+}
+
 const steam = SteamApi.new(config.apiKey);
 const db = ArchiveDatabase.new(config.dbPath);
 
