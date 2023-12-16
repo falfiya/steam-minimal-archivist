@@ -19,9 +19,14 @@ const combinedUserIds = [
 
 const summaries = await steam.summaries(combinedUserIds);
 for (const [i, summary] of Object.entries(summaries)) {
-   const batchNumber = Number(i) + 1;
+   const epoch = Math.floor(Date.now() / 1000);
+
    const userId = BigInt(summary.steamid);
    const userName = summary.personaname;
+   console.log(`${userName} #${userId}`);
+
+   console.log(`<-> Batch: ${Number(i) + 1} of ${summaries.length}`);
+   console.log(`<-> Time: ${epoch}`);
 
    // batch all requests
    const [
@@ -38,10 +43,7 @@ for (const [i, summary] of Object.entries(summaries)) {
       steam.ownedGames(userId),
    ]);
 
-   const epoch = Math.floor(Date.now() / 1000);
-   console.log(`${userName} #${userId}`);
-   console.log(`<-> ${batchNumber} of ${summaries.length}`);
-   console.log(`<-> Time is ${epoch}`);
+
    console.log(`<-> Level: ${leveling.player_level}`);
 
    db.addUser({
@@ -177,7 +179,7 @@ db.close();
  */
 async function tryArchiveAvatar(hash: string, url: string): Promise<string | null> {
    if (db.haveAvatar({hash})) {
-      console.log(`had ${hash}`);
+      console.log(`<-> Avatar: ^ ${hash}`);
       return hash;
    }
    try {
@@ -187,6 +189,7 @@ async function tryArchiveAvatar(hash: string, url: string): Promise<string | nul
          throw new Error("Avatar Size Cannot Exceed 2MB!");
       }
       db.addAvatar({hash, data: avatarBuffer});
+      console.log(`<-> Avatar: + ${hash}`);
       return hash;
    } catch (e) {
       console.error(e);
