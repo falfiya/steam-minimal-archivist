@@ -22,15 +22,6 @@ create table users(
    primary key (last_updated, id)
 ) strict;
 
-create table simple(
-   last_updated
-      integer not null,
-   id
-      integer not null,
-   primary key (last_updated, id),
-   foreign key (last_updated, id) references users(last_updated, id)
-) strict;
-
 -- infrequent user changes
 create table users2(
    last_updated
