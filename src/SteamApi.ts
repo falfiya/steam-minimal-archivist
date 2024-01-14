@@ -1,6 +1,8 @@
 type SteamId = string | bigint;
 /** Incomplete implementation of the Steam API */
 export class SteamApi {
+   // ArchiveDatabase and Config have ::new-style constructors and so to keep things
+   // consistent, SteamApi will be the same.
    static new(key: string): SteamApi {
       return new SteamApi(key);
    }
