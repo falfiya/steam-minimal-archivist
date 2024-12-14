@@ -1,4 +1,4 @@
--- schema v1.0.0
+-- schema v1.1.0
 create table sma_meta(schema_version integer not null) strict;
 insert into sma_meta values (1);
 
@@ -176,6 +176,7 @@ create table playtime(
    foreign key (last_updated, user_id) references users(last_updated, id)
 ) strict;
 
+FOR NOW
 create view playtime_vw as
    select
       max(last_updated) as last_updated,

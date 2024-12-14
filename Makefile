@@ -16,3 +16,6 @@ opts += --outfile=js/main.js
 
 build:
 	esbuild src/main.ts $(opts)
+
+typecheck:
+	tsc --noEmit
