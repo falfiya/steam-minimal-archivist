@@ -1,6 +1,5 @@
--- schema v1.1.0
-create table sma_meta(schema_version integer not null) strict;
-insert into sma_meta values (1);
+create table meta(version text not null) strict;
+insert into meta values ('2.0.0');
 
 create table avatars(
    hash

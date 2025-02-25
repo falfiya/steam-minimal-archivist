@@ -1,15 +1,21 @@
 {
    "name": "steam-minimal-archivist",
-   "version": "1.0.0",
+   "version": "2.0.0",
    "author": "falfiya",
    "type": "module",
    "dependencies": {
-      "better-sqlite3": "^11.6.0"
+      "better-sqlite3": "^11.8.1"
    },
    "devDependencies": {
       "@types/better-sqlite3": "^7.6.12",
-      "@types/node": "^22.10.1",
-      "esbuild": "^0.24.0",
-      "typescript": "^5.7.2"
+      "@types/node": "^22.13.5",
+      "esbuild": "^0.25.0",
+      "typescript": "^5.7.3"
+   },
+   "packageManager": "pnpm@10.4.1+sha512.c753b6c3ad7afa13af388fa6d808035a008e30ea9993f58c6663e2bc5ff21679aa834db094987129aa4d488b86df57f7b634981b2f827cdcacc698cc0cfb88af",
+   "pnpm": {
+      "onlyBuiltDependencies": [
+         "esbuild"
+      ]
    }
 }
