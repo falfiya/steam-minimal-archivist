@@ -1,14 +1,23 @@
-# Database 2.0.0
+# Architecture Document (v2.0.0)
+
+## Database
+
+Assume `not null` unless specified.
 
 ```mermaid
 erDiagram
+   strings {
+      id integer pk
+      value text uk
+   }
+
    snapshots {
       epoch integer pk
    }
 
    users {
-      it integer pk
-      time_created integer "not null"
+      id integer pk
+      time_created integer
    }
 
    snapshots ||--o{ user_at : records
@@ -16,10 +25,10 @@ erDiagram
 
    user_at {
       epoch integer fk,pk
-      id integer pk
+      id integer fk,pk
 
       last_logoff integer
-      more integer fk
+      more_ref integer fk
    }
 
    user_at }|--|| users_more : interns
@@ -27,30 +36,25 @@ erDiagram
    users_more {
       id integer pk
 
-      user_name text "not null"
-      profile_url integer fk
-      avatar_hash integer fk
-      real_name text
+      user_name_sref integer fk
+      profile_url_sref integer fk
+      avatar_sref integer fk
+      real_name_sref integer fk "nullable"
 
-      steam_xp integer "not null"
-      steam_level integer "not null"
-      steam_xp_needed_to_level_up integer "not null"
-      steam_xp_needed_current_level integer "not null"
+      steam_xp integer
+      steam_level integer
+      steam_xp_needed_to_level_up integer
+      steam_xp_needed_current_level integer
    }
 
-   users_more }|--|| profile_urls : interns
-
-   profile_urls {
-      id integer pk
-      value text uk "not null"
-   }
+   users_more }|--|| strings : interns
 
    users_more }|--|| avatars : interns
 
    avatars {
       id integer pk
-      hash text uk "not null"
-      data blob "not null"
+      hash text uk
+      data blob uk
    }
 
    games {
@@ -64,15 +68,10 @@ erDiagram
       epoch integer fk,pk
       id integer pk
 
-      name integer fk
+      name_sref integer fk
    }
 
-   game_at }|--|| game_names : interns
-
-   game_names {
-      id integer pk
-      value text uk "not null"
-   }
+   game_at }|--|| strings : interns
 
    snapshots ||--o{ playtime_at : records
    users ||--o{ playtime_at : indexes
@@ -91,12 +90,12 @@ erDiagram
    playtime_more {
       id integer pk
 
-      playtime_2weeks integer "not null"
-      playtime_forever integer "not null"
-      playtime_windows_forever integer "not null"
-      playtime_mac_forever integer "not null"
-      playtime_linux_forever integer "not null"
-      last_played integer "not null"
+      playtime_2weeks integer
+      playtime_forever integer
+      playtime_windows_forever integer
+      playtime_mac_forever integer
+      playtime_linux_forever integer
+      last_played integer
    }
 
    snapshots ||--o{ friend_at : records
@@ -105,8 +104,8 @@ erDiagram
    friend_at {
       epoch integer fk,pk
 
-      user_a integer pk "not null. this won't be a foreign key"
-      user_b integer pk "not null"
+      user_a integer pk
+      user_b integer pk
 
       friends_since integer
    }
