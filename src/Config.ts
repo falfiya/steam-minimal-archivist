@@ -1,5 +1,5 @@
 import fs from "fs";
-import {isStringArray} from "./util";
+import {isStringArray, log} from "./util";
 
 type Config = {
    apiKey: string;
@@ -18,7 +18,7 @@ export async function loadConfig(path = ".config.json"): Promise<Config> {
       return config;
    }
 
-   return createConfig(path);
+   createConfig(path);
 }
 
 function validateConfig(obj: any): asserts obj is Config {
@@ -39,7 +39,8 @@ function validateConfig(obj: any): asserts obj is Config {
 /**
  * Asks the user for information and then writes out a config file.
  */
-async function createConfig(path: string): Promise<Config> {
+// @ts-expect-error
+async function createConfig(path: string): never {
    const {createInterface} = await import("readline/promises");
 
    const rl = createInterface({
@@ -47,7 +48,11 @@ async function createConfig(path: string): Promise<Config> {
       output: process.stdout,
       terminal: false,
    });
-   const apiKey = await rl.question("Paste your Steam API Key:\n> ");
+   const apiKey = await rl.question(""
+      + "Paste your Steam API Key.\n"
+      + "You can get it from https://steamcommunity.com/dev/apikey\n"
+      + "> "
+   );
    const config: Config = {
       apiKey,
       dbPath: "data/sma.sqlite3.zstd",
@@ -55,5 +60,8 @@ async function createConfig(path: string): Promise<Config> {
       userUrls: [],
    };
    fs.writeFileSync(path, JSON.stringify(config, null, 3));
-   return config;
+
+   log.title(`Open up ${path} and add some users to archive!\n`);
+
+   process.exit(0);
 }

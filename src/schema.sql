@@ -2,7 +2,7 @@ create table meta(
    vmajor integer not null,
    vminor integer not null,
    vpatch integer not null,
-   last_vacuumed integer not null,
+   last_vacuumed integer not null
 ) strict;
 
 insert into meta values (2, 0, 0, 0);
@@ -17,15 +17,11 @@ create table users(
    time_created integer not null
 ) strict;
 
-create table games(
-   id integer primary key not null
-) strict;
-
 create view user_at as
 select
    at.epoch,
    at.id,
-   time_created,
+   u.time_created,
 
    at.last_logoff,
 
@@ -38,9 +34,9 @@ select
    ex.steam_level,
    ex.steam_xp_needed_to_level_up,
    ex.steam_xp_needed_current_level
-from from users
+from users as u
 join _user_at as at
-   on id = at.id
+   on u.id = at.id
 join _user_ex as ex
    on at.ex = ex.id;
 
@@ -57,10 +53,10 @@ begin
 
       (select id from _strings where value = new.user_name),
       (select id from _strings where value = new.profile_url),
-      (select id from avatar where hash = new.avatar_hash),
+      (select id from avatars where hash = new.avatar_hash),
 
-      (select case where new.real_name is null then -1
-         else select id from _strings where value = new.real_name end),
+      (select case when new.real_name is null then -1
+         else (select id from _strings where value = new.real_name) end),
 
       new.steam_xp,
       new.steam_level,
@@ -79,10 +75,10 @@ begin
          and profile_url =
             (select id from _strings where value = new.profile_url)
          and avatar =
-            (select id from avatar where hash = new.avatar_hash)
+            (select id from avatars where hash = new.avatar_hash)
          and real_name =
-            (select case where new.real_name is null then -1
-               else select id from _strings where value = new.real_name end)
+            (select case when new.real_name is null then -1
+               else (select id from _strings where value = new.real_name) end)
          and steam_xp = new.steam_xp
          and steam_level = new.steam_level
          and steam_xp_needed_to_level_up = new.steam_xp_needed_to_level_up
@@ -132,7 +128,7 @@ create table _user_ex(
 create table avatars(
    id integer primary key not null,
    hash text unique not null,
-   data blob not null, -- unique but it would take too long
+   data blob not null -- unique but it would take too long
 ) strict;
 
 create table games(
@@ -144,7 +140,7 @@ select
    epoch,
    id,
    (select value from _strings where id = name) as name
-from game_at_ex;
+from _game_at;
 
 create trigger game_at_insert instead of insert on game_at
 begin

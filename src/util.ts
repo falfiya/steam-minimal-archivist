@@ -21,7 +21,7 @@ export function log(who: string, sigil: string, ...msg: string[]) {
 }
 export namespace log {
    export function title(x: string) {
-      process.stdout.write(x);
+      process.stdout.write(x + "\n");
    }
 
    export const debug = (...x: any) => console.debug(...x);

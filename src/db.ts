@@ -1,4 +1,5 @@
 import fs from "fs";
+import path from "path";
 import sqlite3 from "better-sqlite3";
 import {gepoch} from "./util";
 import * as zstd from "@mongodb-js/zstd";
@@ -70,7 +71,7 @@ export class smaDB {
 
    private _getMeta: Stmt;
    static _getMeta = /* sql */ `
-      select vmajor, vminor, vpatch, last_optimized from meta;
+      select vmajor, vminor, vpatch, last_vacuumed from meta;
    `;
    getMeta() {
       type Metadata = {
@@ -105,7 +106,7 @@ export class smaDB {
    }
 
    private _putUserAt: Stmt;
-   static _putUserAt: /* sql */ `
+   static _putUserAt = /* sql */ `
       insert into user_at(
          epoch,
          id,
@@ -127,7 +128,7 @@ export class smaDB {
          :epoch,
          :id,
 
-         :time_created
+         :time_created,
 
          :last_logoff,
 
@@ -177,7 +178,7 @@ export class smaDB {
 
    private _putPlaytimeAt: Stmt;
    static _putPlaytimeAt = /* sql */ `
-      insert into playtime_vw(
+      insert into playtime_at(
          epoch,
          user_id,
          game_id,
@@ -187,10 +188,10 @@ export class smaDB {
          playtime_windows_forever,
          playtime_mac_forever,
          playtime_linux_forever,
-         last_played,
+         last_played
       )
       values (
-         :last_updated,
+         :epoch,
          :user_id,
          :game_id,
 
@@ -241,6 +242,7 @@ export class smaDB {
          this.db.exec("vacuum");
       }
 
+      fs.mkdirSync(path.dirname(this.path), {recursive: true});
       fs.writeFileSync(this.path, await zstd.compress(this.db.serialize()));
       this.db.close();
    }

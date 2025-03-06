@@ -7,6 +7,7 @@ endif
 run: build
 	node js/main
 
+opts += --bundle
 opts += --format=esm
 opts += --platform=node
 opts += --packages=external

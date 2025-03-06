@@ -16,7 +16,7 @@ const db = await openDatabase(config.dbPath);
 // inputs come in two forms and so I'd just like a unified list of steamids
 const combinedUserIds = [
    ...config.userIds,
-   ...await Promise.all(config.userUrls.map(steam.resolveUrl)),
+   ...await Promise.all(config.userUrls.map(steam.resolveUrl.bind(steam))),
 ];
 
 log.title(`Starting Snapshot at ${sepoch()}`);
