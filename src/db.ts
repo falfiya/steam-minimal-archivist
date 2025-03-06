@@ -10,7 +10,7 @@ Otherwise, the db probably isn't the bottleneck.
 import schema from "./schema.sql";
 declare const schema: string;
 
-namespace haveAvatar {
+namespace hasAvatar {
    export const sql = /* sql */ `
       select count(*) as count from avatars where hash = :hash;
    `;
@@ -153,8 +153,6 @@ namespace addFriend {
 }
 
 export class ArchiveDatabase extends Sqlite3Database {
-   schemaVersion = 1;
-
    stmtHaveAvatar: Statement;
    stmtAddAvatar: Statement;
    stmtAddUser: Statement;
@@ -179,7 +177,7 @@ export class ArchiveDatabase extends Sqlite3Database {
       this.pragma("foreign_keys = on");
       this.verify();
 
-      this.stmtHaveAvatar = this.prepare(haveAvatar.sql);
+      this.stmtHaveAvatar = this.prepare(hasAvatar.sql);
       this.stmtAddAvatar = this.prepare(addAvatar.sql);
       this.stmtAddUser = this.prepare(addUser.sql);
       this.stmtAddUser2 = this.prepare(addUser2.sql);
@@ -202,7 +200,7 @@ export class ArchiveDatabase extends Sqlite3Database {
       }
    }
 
-   haveAvatar(p: haveAvatar.params): boolean {
+   haveAvatar(p: hasAvatar.params): boolean {
       return !!(this.stmtHaveAvatar.get(p) as any).count;
    }
 

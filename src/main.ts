@@ -1,14 +1,16 @@
 // this program assumes that the CWD is the repository root!
-import {Config} from "./Config";
-import {SteamApi} from "./SteamApi";
-import {ArchiveDatabase} from "./ArchiveDatabase";
+import {SteamAPI} from "./steamAPI";
+import {epoch, log} from "./util";
+import {loadConfig} from "./config";
+import {ArchiveDatabase} from "./db";
 
-const config = await Config.new();
+const config = await loadConfig();
+
 if (config.userIds.length === 0 && config.userUrls.length === 0) {
-   console.log("Nothing to archive! Quitting...\n");
+   log.panic("No users to archive! Exiting...\n");
 }
 
-const steam = SteamApi.new(config.apiKey);
+const steam = new SteamAPI(config.apiKey);
 const db = ArchiveDatabase.new(config.dbPath);
 
 // inputs come in two forms and so I'd just like a unified list of steamids
@@ -17,9 +19,12 @@ const combinedUserIds = [
    ...await Promise.all(config.userUrls.map(steam.resolveUrl)),
 ];
 
+log(`${combinedUserIds.length} user${combinedUserIds.length === 1 ? "" : "s"} found.\nFetching player summaries...`);
+
+log(`Starting Snapshot at ${epoch()}`);
 const summaries = await steam.summaries(combinedUserIds);
+
 for (const [i, summary] of Object.entries(summaries)) {
-   const epoch = Math.floor(Date.now() / 1000);
 
    const userId = BigInt(summary.steamid);
    const userName = summary.personaname;

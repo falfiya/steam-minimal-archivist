@@ -1,27 +1,27 @@
-type SteamId = string | bigint;
+type SteamId = string
+;
 /** Incomplete implementation of the Steam API */
-export class SteamApi {
-   // ArchiveDatabase and Config have ::new-style constructors and so to keep things
-   // consistent, SteamApi will be the same.
-   static new(key: string): SteamApi {
-      return new SteamApi(key);
-   }
-   private constructor (private key: string) {}
+export class SteamAPI {
+   constructor (private key: string) {}
+
    /** Call the API and decode the JSON. Handle errors too. */
    async call<T>(endpoint: string, queryString: string): Promise<T> {
       const url = `https://api.steampowered.com/${endpoint}?key=${this.key}&${queryString}`;
       const res = await fetch(url);
+      const text = await res.text();
       if (res.ok) {
          try {
-            const obj = await res.json();
+            const obj = JSON.parse(text);
             return obj as T;
          } catch (e) {
-            console.error(await res.text());
+            console.error(text);
             throw e;
          }
       } else {
-         console.error(await res.text());
-         throw new Error(`Fetch was not OK! Status = ${res.status} (${res.statusText})`);
+         throw new Error(
+            `GET ${JSON.stringify(url)} = ${res.status} ${res.statusText}`,
+            {cause: text},
+         );
       }
    }
 
@@ -97,7 +97,7 @@ export class SteamApi {
       type Friend = {
          steamid: string;
          /** usually "friend" it seems */
-         relationship: string;
+         relationship: "all" | "friend";
          friend_since: number;
       };
       type GetFriendList = {
@@ -156,7 +156,7 @@ export class SteamApi {
       return res.response.steamid;
    }
 
-   resolveUrl(url: string): Promise<string> {
+   resolveUrl(url: string): Promise<SteamId> {
       const profileMatch = url.match(/^https?:\/{2}steamcommunity.com\/profiles\/(?<steamid>\d+)/);
       if (profileMatch) {
          return Promise.resolve(profileMatch.groups?.steamid as string);
@@ -171,9 +171,10 @@ export class SteamApi {
       }
    }
 }
+
 export namespace SteamApi {
-   type ReturnOf<methodName extends keyof SteamApi> =
-      ReturnType<SteamApi[methodName]> extends Promise<infer T>
+   type ReturnOf<methodName extends keyof SteamAPI> =
+      ReturnType<SteamAPI[methodName]> extends Promise<infer T>
       ? T
       : never;
 

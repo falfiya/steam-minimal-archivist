@@ -1,46 +1,56 @@
 import fs from "fs";
-import {createInterface} from "readline/promises";
+import {isStringArray} from "./util";
 
-export class Config {
-   static async new(path = ".config.json"): Promise<Config> {
-      if (fs.existsSync(path)) {
-         const configRaw = fs.readFileSync(path, "utf8");
-         const {
-            apiKey,
-            dbPath,
-            userIds,
-            userUrls,
-         } = JSON.parse(configRaw) as Record<string, unknown>;
-         if (typeof apiKey !== "string") {
-            throw new Error("Expected config.apiKey to be a string!");
-         }
-         if (typeof dbPath !== "string") {
-            throw new Error("Expected config.dbPath to be a string!");
-         }
-         if (!Array.isArray(userIds)) {
-            throw new Error("Expected config.userIds to be a string[]!");
-         }
-         if (!Array.isArray(userUrls)) {
-            throw new Error("Expected config.userUrls to be a string[]!");
-         }
-         return new Config(apiKey, dbPath, userIds, userUrls);
-      } else {
-         const rl = createInterface({
-            input: process.stdin,
-            output: process.stdout,
-            terminal: false,
-         });
-         const apiKey = await rl.question("Paste your Steam API Key:\n> ");
-         const config = new Config(apiKey);
-         fs.writeFileSync(path, JSON.stringify(config, null, 3));
-         return config;
-      }
+type Config = {
+   apiKey: string;
+   dbPath: string;
+   userIds: string[];
+   userUrls: string[];
+};
+
+/**
+ * Loads and validates a config file or creates a new one.
+ */
+export async function loadConfig(path = ".config.json"): Promise<Config> {
+   if (fs.existsSync(path)) {
+      const config = JSON.parse(fs.readFileSync(path, "utf8"));
+      validateConfig(config);
+      return config;
    }
 
-   private constructor (
-      public apiKey: string,
-      public dbPath: string = "data/steam-minimal-archivist.sqlite3",
-      public userIds: string[] = [],
-      public userUrls: string[] = [],
-   ) {}
+   return createConfigFromUserPrompt(path);
+}
+
+function validateConfig(obj: any): asserts obj is Config {
+   if (typeof obj.apiKey !== "string") {
+      throw new Error("Expected config.apiKey to be a string!");
+   }
+   if (typeof obj.dbPath !== "string") {
+      throw new Error("Expected config.dbPath to be a string!");
+   }
+   if (!isStringArray(obj.userIds)) {
+      throw new Error("Expected config.userIds to be a string[]!");
+   }
+   if (!isStringArray(obj.userUrls)) {
+      throw new Error("Expected config.userUrls to be a string[]!");
+   }
+}
+
+async function createConfigFromUserPrompt(path: string): Promise<Config> {
+   const {createInterface} = await import("readline/promises");
+
+   const rl = createInterface({
+      input: process.stdin,
+      output: process.stdout,
+      terminal: false,
+   });
+   const apiKey = await rl.question("Paste your Steam API Key:\n> ");
+   const config: Config = {
+      apiKey,
+      dbPath: "data/sma.sqlite3.zstd",
+      userIds: [],
+      userUrls: [],
+   };
+   fs.writeFileSync(path, JSON.stringify(config, null, 3));
+   return config;
 }
