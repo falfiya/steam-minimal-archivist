@@ -18,7 +18,7 @@ export async function loadConfig(path = ".config.json"): Promise<Config> {
       return config;
    }
 
-   createConfig(path);
+   return createConfig(path);
 }
 
 function validateConfig(obj: any): asserts obj is Config {
