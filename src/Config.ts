@@ -18,7 +18,7 @@ export async function loadConfig(path = ".config.json"): Promise<Config> {
       return config;
    }
 
-   return createConfigFromUserPrompt(path);
+   return createConfig(path);
 }
 
 function validateConfig(obj: any): asserts obj is Config {
@@ -36,7 +36,10 @@ function validateConfig(obj: any): asserts obj is Config {
    }
 }
 
-async function createConfigFromUserPrompt(path: string): Promise<Config> {
+/**
+ * Asks the user for information and then writes out a config file.
+ */
+async function createConfig(path: string): Promise<Config> {
    const {createInterface} = await import("readline/promises");
 
    const rl = createInterface({

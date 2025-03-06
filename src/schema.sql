@@ -2,7 +2,7 @@ create table meta(
    vmajor integer not null,
    vminor integer not null,
    vpatch integer not null,
-   last_optimized integer not null,
+   last_vacuumed integer not null,
 ) strict;
 
 insert into meta values (2, 0, 0, 0);
@@ -25,23 +25,30 @@ create view user_at as
 select
    at.epoch,
    at.id,
+   time_created,
+
    at.last_logoff,
+
    (select value from _strings where id = ex.user_name) as user_name,
    (select value from _strings where id = ex.profile_url) as profile_url,
    (select hash from avatars where id = ex.avatar) as avatar_hash,
-   (select case when ex.has_real_name
-      then select value from _strings where id = ex.real_name
-      else null end) as real_name,
+   (select value from _strings where id = ex.real_name) as real_name,
+
    ex.steam_xp,
    ex.steam_level,
    ex.steam_xp_needed_to_level_up,
    ex.steam_xp_needed_current_level
-from _user_at as at
+from from users
+join _user_at as at
+   on id = at.id
 join _user_ex as ex
    on at.ex = ex.id;
 
 create trigger user_at_insert instead of insert on user_at
 begin
+   insert into users values (new.id, new.time_created)
+      on conflict do nothing;
+
    insert into _strings values (null, new.user_name), (null, new.profile_url)
       on conflict do nothing;
 
@@ -52,8 +59,8 @@ begin
       (select id from _strings where value = new.profile_url),
       (select id from avatar where hash = new.avatar_hash),
 
-      (select case where new.real_name is null then 0 else 1 end),
-      (select case where new.real_name is null then 0 else select id from _strings where value = new.real_name end),
+      (select case where new.real_name is null then -1
+         else select id from _strings where value = new.real_name end),
 
       new.steam_xp,
       new.steam_level,
@@ -67,11 +74,15 @@ begin
 
       new.last_logoff,
       (select id from _user_ex where (1
-         and user_name = (select id from _strings where value = new.user_name)
-         and profile_url = (select id from _strings where value = new.profile_url)
-         and avatar = (select id from avatar where hash = new.avatar_hash)
-         and has_real_name = (select case where new.real_name is null then 0 else 1 end)
-         and real_name = (select case where new.real_name is null then 0 else select id from _strings where value = new.real_name end)
+         and user_name =
+            (select id from _strings where value = new.user_name)
+         and profile_url =
+            (select id from _strings where value = new.profile_url)
+         and avatar =
+            (select id from avatar where hash = new.avatar_hash)
+         and real_name =
+            (select case where new.real_name is null then -1
+               else select id from _strings where value = new.real_name end)
          and steam_xp = new.steam_xp
          and steam_level = new.steam_level
          and steam_xp_needed_to_level_up = new.steam_xp_needed_to_level_up
@@ -98,10 +109,7 @@ create table _user_ex(
    profile_url integer references _strings not null,
    avatar integer references avatars not null,
 
-   -- has_real_name should only be 0 or 1
-   has_real_name integer not null,
-   -- if has_real_name is false, set real_name to 0 always
-   real_name integer references _strings not null,
+   real_name integer not null, -- may reference _strings.id
 
    -- leveling data
    steam_xp integer not null,
@@ -124,7 +132,7 @@ create table _user_ex(
 create table avatars(
    id integer primary key not null,
    hash text unique not null,
-   data blob unique not null,
+   data blob not null, -- unique but it would take too long
 ) strict;
 
 create table games(
@@ -158,8 +166,6 @@ create table _game_at(
    > You can change the name of your game within Steamworks at any time until your
    > store page has been through the pre-release review process.
 
-   It seems to me that the game name can actually change.
-
    This table might be overkill but I got nervy.
    */
    name integer references _strings not null,
@@ -172,6 +178,7 @@ select
    at.epoch,
    at.user_id,
    at.game_id,
+
    ex.playtime_2weeks,
    ex.playtime_forever,
    ex.playtime_windows_forever,
@@ -195,10 +202,19 @@ begin
       new.last_played
    ) on conflict do nothing;
 
-   insert into _game_at values (
+   insert into _playtime_at values (
       new.epoch,
-      new.id,
-      (select id from _strings where value = new.name)
+      new.user_id,
+      new.game_id,
+
+      (select id from _playtime_ex where (1
+         and playtime_2weeks = new.playtime_2weeks
+         and playtime_forever = new.playtime_forever
+         and playtime_windows_forever = new.playtime_windows_forever
+         and playtime_mac_forever = new.playtime_mac_forever
+         and playtime_linux_forever = new.playtime_linux_forever
+         and last_played = new.last_played)
+      )
    );
 end;
 

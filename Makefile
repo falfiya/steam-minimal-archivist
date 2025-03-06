@@ -7,15 +7,13 @@ endif
 run: build
 	node js/main
 
-opts := --bundle
 opts += --format=esm
 opts += --platform=node
 opts += --packages=external
 opts += --loader:.sql=text
-opts += --outfile=js/main.js
 
 build:
-	esbuild src/main.ts $(opts)
+	esbuild src/main.ts $(opts) --outfile=js/main.js
 
 typecheck:
 	tsc --noEmit

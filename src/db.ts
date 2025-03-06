@@ -1,60 +1,140 @@
 import fs from "fs";
-import Sqlite3Database, {Statement} from "better-sqlite3";
+import sqlite3 from "better-sqlite3";
+import {gepoch} from "./util";
+import * as zstd from "@mongodb-js/zstd";
 
-/*
-If further optimization is needed, allow inserting multiple rows at a time.
-Otherwise, the db probably isn't the bottleneck.
-*/
-
+// This is telling esbuild to include the file as a string
 // @ts-expect-error
 import schema from "./schema.sql";
 declare const schema: string;
 
-namespace hasAvatar {
-   export const sql = /* sql */ `
+export async function openDatabase(path: string): Promise<smaDB> {
+   let db;
+   if (fs.existsSync(path)) {
+      db = await loadDatabase(path);
+   } else {
+      db = createDatabase();
+   }
+
+   return new smaDB(path, db);
+}
+
+async function loadDatabase(path: string): Promise<sqlite3.Database> {
+   const compressed = fs.readFileSync(path);
+   const decompressed = await zstd.decompress(compressed);
+   return new sqlite3(decompressed);
+}
+
+/**
+ * Creates a database and writes it out.
+ */
+function createDatabase(): sqlite3.Database {
+   const db = new sqlite3(":memory:");
+   db.exec(schema)
+   return db;
+}
+
+type Stmt = sqlite3.Statement;
+
+export class smaDB {
+   constructor (public path: string, public db: sqlite3.Database) {
+      db.pragma("foreign_keys = on");
+
+      this._begin = db.prepare("begin transaction;");
+      this._commit = db.prepare("commit;");
+      this._rollback = db.prepare("rollback;");
+
+      this._getMeta = db.prepare(smaDB._getMeta);
+      this._hasAvatar = db.prepare(smaDB._hasAvatar).raw();
+      this._putAvatar = db.prepare(smaDB._putAvatar);
+      this._putUserAt = db.prepare(smaDB._putUserAt);
+      this._putGameAt = db.prepare(smaDB._putGameAt);
+      this._putPlaytimeAt = db.prepare(smaDB._putPlaytimeAt);
+      this._putFriendAt = db.prepare(smaDB._putFriendAt);
+   }
+
+   private _begin: Stmt;
+   begin() {
+      this._begin.run();
+   }
+
+   private _commit: Stmt;
+   commit() {
+      this._commit.run();
+   }
+
+   private _rollback: Stmt;
+   rollback() {
+      this._rollback.run();
+   }
+
+   private _getMeta: Stmt;
+   static _getMeta = /* sql */ `
+      select vmajor, vminor, vpatch, last_optimized from meta;
+   `;
+   getMeta() {
+      type Metadata = {
+         vmajor: number;
+         vminor: number;
+         vpatch: number;
+         last_vacuumed: number;
+      };
+      const [meta] = this._getMeta.all();
+      if (meta == null) {
+         throw new TypeError("Could not get metadata!");
+      }
+      return meta as Metadata;
+   }
+
+   private _hasAvatar: Stmt;
+   static _hasAvatar = /* sql */ `
       select count(*) as count from avatars where hash = :hash;
    `;
-   export type params = {hash: string};
-}
+   hasAvatar(o: {hash: string}): boolean {
+      // @ts-expect-error
+      return !!this._hasAvatar.get(o)[0];
+   }
 
-namespace addAvatar {
-   export const sql = /* sql */ `
-      insert into avatars values (
-         :hash,
-         :data
-      );
+   private _putAvatar: Stmt;
+   static _putAvatar = /* sql */ `
+      insert into avatars(id, hash, data) values
+         (null, :hash, :data) on conflict do nothing;
    `;
-   export type params = {hash: string, data: Buffer};
-}
+   putAvatar(o: {hash: string, data: Buffer}) {
+      this._putAvatar.run(o);
+   }
 
-namespace addUser {
-   export const sql = /* sql */ `
-      insert into users values (
-         :last_updated,
+   private _putUserAt: Stmt;
+   static _putUserAt: /* sql */ `
+      insert into user_at(
+         epoch,
+         id,
+         time_created,
+
+         last_logoff,
+
+         user_name,
+         profile_url,
+         avatar_hash,
+         real_name,
+
+         steam_xp,
+         steam_level,
+         steam_xp_needed_to_level_up,
+         steam_xp_needed_current_level
+      )
+      values (
+         :epoch,
          :id,
 
-         :last_logoff
-      );
-   `;
-   export type params = {
-      last_updated: number,
-      id: bigint,
+         :time_created
 
-      last_logoff: number,
-   };
-}
-
-namespace addUser2 {
-   export const sql = /* sql */ `
-      insert into users2_vw values (
-         :last_updated,
-         :id,
+         :last_logoff,
 
          :user_name,
          :profile_url,
          :avatar_hash,
          :real_name,
-         :time_created,
 
          :steam_xp,
          :steam_level,
@@ -62,41 +142,54 @@ namespace addUser2 {
          :steam_xp_needed_current_level
       );
    `;
-   export type params = {
-      last_updated: number,
+   putUserAt(o: {
+      epoch: number,
       id: bigint,
+      time_created: number,
+
+      last_logoff: number,
 
       user_name: string,
       profile_url: string,
       avatar_hash: string | null,
       real_name: string | null,
-      time_created: number,
+
       steam_xp: number,
       steam_level: number,
       steam_xp_needed_to_level_up: number,
       steam_xp_needed_current_level: number,
-   };
-}
-
-namespace addGame {
-   export const sql = /* sql */ `
-      insert into games_vw values (
-         :last_updated,
-         :id,
-         :name
-      )
-   `;
-   export type params = {
-      last_updated: number;
-      id: number;
-
-      name: string;
+   }) {
+      this._putUserAt.run(o);
    }
-}
 
-namespace addPlaytime {
-   export const sql = /* sql */ `
-      insert into playtime_vw values (
+   private _putGameAt: Stmt;
+   static _putGameAt = /* sql */ `
+      insert into game_at(epoch, id, name)
+         values (:epoch, :id, :name);
+   `;
+   putGameAt(o: {
+      epoch: number,
+      id: number,
+      name: string,
+   }) {
+      this._putGameAt.run(o);
+   }
+
+   private _putPlaytimeAt: Stmt;
+   static _putPlaytimeAt = /* sql */ `
+      insert into playtime_vw(
+         epoch,
+         user_id,
+         game_id,
+
+         playtime_2weeks,
+         playtime_forever,
+         playtime_windows_forever,
+         playtime_mac_forever,
+         playtime_linux_forever,
+         last_played,
+      )
+      values (
          :last_updated,
          :user_id,
          :game_id,
@@ -109,132 +202,46 @@ namespace addPlaytime {
          :last_played
       );
    `;
-   export type params = {
-      last_updated: number,
+   putPlaytimeAt(o: {
+      epoch: number,
       user_id: bigint,
       game_id: number,
 
-      playtime_2weeks: number | null,
+      playtime_2weeks: number,
       playtime_forever: number,
-      playtime_windows_forever: number;
-      playtime_mac_forever: number;
-      playtime_linux_forever: number;
-      last_played: number;
-   };
-}
+      playtime_windows_forever: number,
+      playtime_mac_forever: number,
+      playtime_linux_forever: number,
+      last_played: number,
+   }) {
+      this._putPlaytimeAt.run(o);
+   }
 
-namespace getFriends {
-   /** Remember to turn safeIntegers on and use .raw mode! */
-   export const sql = /* sql */ `
-      select user_a as friend from friends_vw where user_b = :user_id
-      union
-      select user_b as friend from friends_vw where user_a = :user_id;
+   private _putFriendAt: Stmt;
+   static _putFriendAt = /* sql */ `
+      insert into friend_at(epoch, user_a, user_b, friends_since)
+         values (:epoch, :user_a, :user_b, :friends_since);
    `;
-   export type params = {user_id: bigint};
-   export type returnValue = bigint[];
-}
-
-namespace addFriend {
-   export const sql = /* sql */ `
-      insert into friends_vw values (
-         :last_updated,
-         :user_a,
-         :user_b,
-         :friend_since
-      );
-   `;
-   export type params = {
-      last_updated: number;
-      user_a: bigint;
-      user_b: bigint;
-      /** A value of null means that these two users are no longer friends :( */
-      friend_since: number | null;
-   };
-}
-
-export class ArchiveDatabase extends Sqlite3Database {
-   stmtHaveAvatar: Statement;
-   stmtAddAvatar: Statement;
-   stmtAddUser: Statement;
-   stmtAddUser2: Statement;
-   stmtAddGame: Statement;
-   stmtAddPlaytime: Statement;
-   stmtGetFriends: Statement;
-   stmtAddFriend: Statement;
-
-   static new(location: string): ArchiveDatabase {
-      if (!fs.existsSync(location)) {
-         // provision db
-         const db = new Sqlite3Database(location);
-         db.exec(schema)
-         db.close();
+   putFriendAt(o: {
+      epoch: number,
+      user_a: bigint,
+      user_b: bigint,
+      friends_since: number,
+   }) {
+      if (o.user_a > o.user_b) {
+         [o.user_a, o.user_b] = [o.user_b, o.user_a];
       }
-      return new ArchiveDatabase(location);
+      this._putFriendAt.run(o);
    }
 
-   private constructor (location: string) {
-      super(location, {fileMustExist: true});
-      this.pragma("foreign_keys = on");
-      this.verify();
-
-      this.stmtHaveAvatar = this.prepare(hasAvatar.sql);
-      this.stmtAddAvatar = this.prepare(addAvatar.sql);
-      this.stmtAddUser = this.prepare(addUser.sql);
-      this.stmtAddUser2 = this.prepare(addUser2.sql);
-      this.stmtAddGame = this.prepare(addGame.sql);
-      this.stmtAddPlaytime = this.prepare(addPlaytime.sql);
-      this.stmtGetFriends = this.prepare(getFriends.sql);
-      this.stmtGetFriends.safeIntegers(true);
-      this.stmtGetFriends.raw(true);
-      this.stmtAddFriend = this.prepare(addFriend.sql);
-   }
-
-   verify() {
-      const selectStmt = this.prepare(/* sql */ `
-         select schema_version from sma_meta;
-      `);
-      const diskVersion = (selectStmt.get() as any).schema_version;
-      const adapterVersion = this.schemaVersion;
-      if (diskVersion !== adapterVersion) {
-         throw new Error(`The schema on disk is ${diskVersion} but the adapter version is ${adapterVersion}!`);
+   static vacuumInterval = 1000000;
+   async close() {
+      this.db.pragma("optimize");
+      if (this.getMeta().last_vacuumed + smaDB.vacuumInterval < gepoch()) {
+         this.db.exec("vacuum");
       }
-   }
 
-   haveAvatar(p: hasAvatar.params): boolean {
-      return !!(this.stmtHaveAvatar.get(p) as any).count;
-   }
-
-   addAvatar(p: addAvatar.params) {
-      this.stmtAddAvatar.run(p);
-   }
-
-   addUser(p: addUser.params) {
-      this.stmtAddUser.run(p);
-   }
-
-   addUser2(p: addUser2.params) {
-      this.stmtAddUser2.run(p);
-   }
-
-   addGame(p: addGame.params) {
-      this.stmtAddGame.run(p);
-   }
-
-   addPlaytime(p: addPlaytime.params) {
-      this.stmtAddPlaytime.run(p);
-   }
-
-   getFriends(p: getFriends.params): getFriends.returnValue {
-      // @ts-expect-error
-      return this.stmtGetFriends.all(p).flat();
-   }
-
-   addFriend(p: addFriend.params) {
-      this.stmtAddFriend.run(p);
-   }
-
-   override close(): this {
-      super.pragma("optimize");
-      return super.close();
+      fs.writeFileSync(this.path, await zstd.compress(this.db.serialize()));
+      this.db.close();
    }
 }
