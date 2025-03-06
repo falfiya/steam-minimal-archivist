@@ -52,6 +52,7 @@ export class smaDB {
       this._putGameAt = db.prepare(smaDB._putGameAt);
       this._putPlaytimeAt = db.prepare(smaDB._putPlaytimeAt);
       this._putFriendAt = db.prepare(smaDB._putFriendAt);
+      this._setVacuumed = db.prepare(smaDB._setVacuumed);
    }
 
    private _begin: Stmt;
@@ -235,11 +236,20 @@ export class smaDB {
       this._putFriendAt.run(o);
    }
 
+   private _setVacuumed: Stmt;
+   static _setVacuumed = /* sql */ `
+      update meta set last_vacuumed = ?;
+   `;
+   setVacuumed() {
+      this._setVacuumed.run(gepoch());
+   }
+
    static vacuumInterval = 1000000;
    async close() {
       this.db.pragma("optimize");
       if (this.getMeta().last_vacuumed + smaDB.vacuumInterval < gepoch()) {
          this.db.exec("vacuum");
+         this.setVacuumed();
       }
 
       fs.mkdirSync(path.dirname(this.path), {recursive: true});

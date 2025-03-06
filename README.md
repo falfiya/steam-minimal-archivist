@@ -1,12 +1,10 @@
-# steam-minimal-archivist v1.0.0
+# steam-minimal-archivist v2.0.0
 
 *Unfancy Steam Archivist*
 
 Steam doesn't keep track of play-time on specific dates so let's do it ourselves. `steam-minimal-archivist` records your Steam play-time per game, along with some other stuff.
 
-I recommend setting it up to run periodically. Maybe have it run on login, or run once a day. Do it whenever it suits you. Mine runs whenever my computer is idle for more than 15 minutes using the Windows® Task Scheduler.
-
-I've traded simplicity for data size here. `steam-minimal-archivist` uses diffs instead of full snapshots. This makes the data format significantly more complicated but the size is reduced massively. It wouldn't be unreasonable to run it every hour.
+I recommend setting it up to run periodically. Mine runs every hour using the Windows® Task Scheduler. The size on disk should not be too much of an issue. I have done my best to optimize the database schema for minimum size. Also, it's compressed using ZStandard. If you have a GB of data to spare every year, you could have snapshots as frequently as every 5 minutes!
 
 ## What's Archived
 
@@ -31,9 +29,7 @@ I've traded simplicity for data size here. `steam-minimal-archivist` uses diffs 
 ## Requirements
 
 - Node.js
-   - I have `v20.7.0` and it works fine
 - Node Package Manager
-   - I'm using version `10.1.0`
 - GNU Make
 - A Valid Steam API Key
    - Visit https://steamcommunity.com/dev/apikey to obtain one
@@ -45,6 +41,7 @@ You'll have to build the executable JavaScript yourself though.
 - runtime
    - Node.js
    - `better-sqlite3`
+   - `date-fns`
 - build time
    - `typescript`
    - `@types/node`
@@ -53,9 +50,9 @@ You'll have to build the executable JavaScript yourself though.
 
 ## Usage
 
-1. Clone this repository and `cd into it`
+1. Clone this repository and `cd` into it
    - `git clone https://github.com/falfiya/steam-minimal-archivist.git && cd steam-minimal-archivist`
-2. `npm i` to install all required packages
+2. `pnpm i` to install all required packages
 3. `make` to build and run
 
 On your first run, you will be prompted for your Steam API Key and a `.config.json` file will be created.
@@ -90,6 +87,7 @@ After your first build, you can simply run it using `node js/main` when the CWD 
 - TypeScript and SQL source files in `src/`
 - Executable JavaScript files in `js/`
 - Archives in `data/`
+- Logs in `logs/`
 
 <h2>Online Resources Used <sup>(Thank You)</sup></h2>
 
